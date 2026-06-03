@@ -534,6 +534,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;ba
     <div class="nav-section">
       <div class="nav-lbl">Overview</div>
       <div class="nav-item active" data-page="team" onclick="showPage('team',this)"><i class="ti ti-layout-dashboard"></i>Team overview</div>
+      <div class="nav-item" data-page="handover" onclick="showPage('handover',this)"><i class="ti ti-transfer"></i>Pipeline handover</div>
       <div class="nav-item" data-page="alerts" onclick="showPage('alerts',this)"><i class="ti ti-bell"></i>Alerts<span class="nav-count" id="alert-count">3</span></div>
     </div>
     <div class="nav-section">
@@ -576,6 +577,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;ba
       <div id="view-art" style="display:none"></div>
       <div id="view-team" style="display:none"></div>
       <div id="eng-panel-hier"></div>
+    </div>
+
+    <!-- PIPELINE HANDOVER -->
+    <div id="page-handover" class="page">
+      <div class="page-hdr">
+        <div>
+          <div class="page-title">Pipeline Handover</div>
+          <div class="page-sub">Everything a new joiner needs to take over a pipeline -- knowledge, history, dependencies and lessons learned</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <select id="ho-pipeline" onchange="renderHandover()" style="padding:9px 14px;border:1px solid var(--border);border-radius:9px;font-size:13px;font-weight:600;color:var(--navy);background:white;cursor:pointer;min-width:280px">
+          </select>
+          <button onclick="downloadHandoverBrief()" style="padding:9px 16px;background:var(--navy);color:white;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px"><i class="ti ti-download" style="font-size:15px"></i>Export brief</button>
+        </div>
+      </div>
+      <div id="ho-body"></div>
     </div>
 
     <!-- ALERTS -->
@@ -2079,12 +2096,301 @@ function handleDrop(e){
   if(f) handleFile(f);
 }
 
+
+// ============ PIPELINE HANDOVER ============
+const HANDOVER_PIPELINES = {
+  booking_revenue_lh: {
+    name: 'booking_revenue_lh.py',
+    vs: 'Booking & Reservation',
+    owner: 'Anitha R. (departing)',
+    successor: 'You',
+    purpose: 'Daily booking revenue aggregation for LH entity. Joins booking facts with FX rates, applies Finance sign-off logic, outputs to the revenue mart consumed by Tableau dashboards.',
+    health: 71,
+    stories: 14,
+    commits: 87,
+    months: 18,
+    contributors: 4,
+    spikes: 2,
+    timeline: [
+      {date:'2023-04', label:'Pipeline created', type:'milestone', who:'Anitha R.', detail:'Initial booking revenue logic, LH entity only'},
+      {date:'2023-06', label:'Story: Add FX conversion', type:'story', who:'Anitha R.', detail:'PROJ-1247 -- multi-currency support via lhg_prod.ref.fx_rates'},
+      {date:'2023-10', label:'Finance sign-off added', type:'milestone', who:'Anitha R.', detail:'FX logic locked after Finance Analytics review -- DO NOT modify without approval'},
+      {date:'2024-01', label:'Spike: Null revenue rows', type:'spike', who:'Marco B.', detail:'Upstream change caused null revenue -- added defensive validation'},
+      {date:'2024-03', label:'Story: Entity exclusion rules', type:'story', who:'Anitha R.', detail:'PROJ-2103 -- LX handled separately by design, not a bug'},
+      {date:'2024-07', label:'Story: Departure date logic', type:'story', who:'Thomas K.', detail:'PROJ-2890 -- departure date primary, booking date fallback'},
+      {date:'2024-11', label:'Spike: FX rate hardcode', type:'spike', who:'Hana P.', detail:'Hardcoded rate slipped in, caught in review -- reverted to ref table'},
+      {date:'2025-02', label:'Story: Performance tuning', type:'story', who:'Anitha R.', detail:'PROJ-3450 -- partition pruning, 40% faster'}
+    ],
+    contributorsList: [
+      {name:'Anitha R.', commits:58, role:'Original author & owner', focus:'FX logic, entity rules, schema design', knowledge:'critical'},
+      {name:'Thomas K.', commits:15, role:'SQL contributor', focus:'Date logic, query optimisation', knowledge:'medium'},
+      {name:'Marco B.', commits:9, role:'Incident fixes', focus:'Null handling, defensive checks', knowledge:'medium'},
+      {name:'Hana P.', commits:5, role:'Junior contributor', focus:'Minor features, learning the codebase', knowledge:'low'}
+    ],
+    dependencies: {
+      upstream: [
+        {name:'lhg_prod.booking.fact_v3', type:'table', note:'Primary source -- booking facts'},
+        {name:'lhg_prod.ref.fx_rates', type:'table', note:'FX reference -- join on rate_date'},
+        {name:'ADF: booking_ingestion', type:'pipeline', note:'Must complete before this runs (06:00 UTC)'}
+      ],
+      downstream: [
+        {name:'lhg_prod.mart.revenue_daily', type:'table', note:'Output table'},
+        {name:'Tableau: Revenue Dashboard', type:'dashboard', note:'Finance consumes daily'},
+        {name:'ancillary_revenue.py', type:'pipeline', note:'Reads this output as input'}
+      ]
+    },
+    challenges: [
+      {title:'FX timing sensitivity', sev:'high', detail:'FX rates must join on the correct rate_date or revenue is wrong. The join date logic is subtle -- read the comments before touching.'},
+      {title:'Finance sign-off constraint', sev:'high', detail:'The FX conversion section carries a Finance Analytics sign-off from Oct 2023. Any change needs their approval first.'},
+      {title:'Entity scope confusion', sev:'medium', detail:'This pipeline is LH only. LX/OS/SN are handled elsewhere by design -- not a missing feature.'}
+    ]
+  },
+  ancillary_revenue: {
+    name: 'ancillary_revenue.py',
+    vs: 'Ancillary Revenue',
+    owner: 'Chen W.',
+    successor: 'You',
+    purpose: 'Calculates ancillary revenue (seats, bags, upgrades) per booking. Experimental pipeline with several approaches still being tested.',
+    health: 55,
+    stories: 9,
+    commits: 52,
+    months: 11,
+    contributors: 3,
+    spikes: 4,
+    timeline: [
+      {date:'2024-07', label:'Pipeline created', type:'milestone', who:'Chen W.', detail:'Initial ancillary logic, prototype'},
+      {date:'2024-09', label:'Spike: Rate inconsistency', type:'spike', who:'Chen W.', detail:'Multiple FX approaches tried -- not yet standardised'},
+      {date:'2024-12', label:'Story: Seat revenue', type:'story', who:'Chen W.', detail:'PROJ-3100 -- seat selection revenue added'},
+      {date:'2025-01', label:'Spike: Hardcoded EUR rate', type:'spike', who:'Chen W.', detail:'1.08 hardcoded -- known issue, needs ref table migration'},
+      {date:'2025-03', label:'Story: Bag revenue', type:'story', who:'Chen W.', detail:'PROJ-3520 -- baggage fees integrated'}
+    ],
+    contributorsList: [
+      {name:'Chen W.', commits:44, role:'Author & owner', focus:'All ancillary logic -- still experimental', knowledge:'critical'},
+      {name:'Thomas K.', commits:6, role:'Reviewer', focus:'SQL review, suggested ref table use', knowledge:'low'},
+      {name:'Marco B.', commits:2, role:'Incident', focus:'One-off fix', knowledge:'low'}
+    ],
+    dependencies: {
+      upstream: [
+        {name:'lhg_prod.mart.revenue_daily', type:'table', note:'Reads booking revenue output'},
+        {name:'lhg_prod.booking.ancillary_raw', type:'table', note:'Raw ancillary events'}
+      ],
+      downstream: [
+        {name:'lhg_prod.mart.ancillary_daily', type:'table', note:'Output'},
+        {name:'Tableau: Ancillary Dashboard', type:'dashboard', note:'Product team consumes'}
+      ]
+    },
+    challenges: [
+      {title:'Hardcoded FX rate', sev:'high', detail:'EUR rate 1.08 is hardcoded -- will produce wrong results when EUR moves. Migrate to lhg_prod.ref.fx_rates.'},
+      {title:'Experimental, not standardised', sev:'medium', detail:'Several approaches coexist. Confirm the intended pattern with Chen before extending.'}
+    ]
+  }
+};
+
+// Topic clusters -- mistakes & best practices grouped by theme (NOT by individual)
+const HANDOVER_TOPICS = {
+  mistakes: [
+    {topic:'FX & currency handling', icon:'ti-currency-dollar', count:5, items:['Hardcoded EUR rate (1.08) instead of ref table','FX joined on wrong date in 2 commits','Missing null check after FX join']},
+    {topic:'Null & data quality', icon:'ti-alert-triangle', count:3, items:['Null revenue rows passed downstream before validation added','No upstream completeness check in early versions']},
+    {topic:'Hardcoded values', icon:'ti-pin', count:4, items:['Hardcoded date ranges in 2 notebooks','Hardcoded entity codes instead of config']}
+  ],
+  practices: [
+    {topic:'Defensive validation', icon:'ti-shield-check', count:6, items:['Validate row counts before every join','Raise on null revenue rather than silently passing','Check upstream ADF completion before running']},
+    {topic:'Documentation discipline', icon:'ti-file-text', count:4, items:['Sign-off constraints documented inline as comments','Entity scope decisions explained in code','FX logic links to the Finance approval ticket']},
+    {topic:'Reference data over hardcoding', icon:'ti-database', count:5, items:['FX always from lhg_prod.ref.fx_rates','Fully-qualified Unity Catalog references','Config-driven entity filters']}
+  ]
+};
+
+function initHandover(){
+  const sel=document.getElementById('ho-pipeline');
+  if(!sel) return;
+  sel.innerHTML=Object.keys(HANDOVER_PIPELINES).map(k=>`<option value="${k}">${HANDOVER_PIPELINES[k].name} -- ${HANDOVER_PIPELINES[k].vs}</option>`).join('');
+  renderHandover();
+}
+
+function renderHandover(){
+  const sel=document.getElementById('ho-pipeline');
+  const body=document.getElementById('ho-body');
+  if(!sel||!body) return;
+  const p=HANDOVER_PIPELINES[sel.value];
+  if(!p) return;
+
+  const sevColor={high:'var(--red)',medium:'var(--amber)',low:'var(--green)'};
+  const knowColor={critical:'var(--red)',medium:'var(--amber)',low:'var(--green)'};
+  const typeIcon={milestone:'ti-flag',story:'ti-checkbox',spike:'ti-bolt'};
+  const typeColor={milestone:'var(--blue)',story:'var(--green)',spike:'var(--red)'};
+
+  body.innerHTML=`
+    <!-- Pipeline summary card -->
+    <div style="background:linear-gradient(135deg,#05164d,#0a2a7a);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:20px;color:white">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px">
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:11px;font-weight:700;color:#7FC8F8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">${p.vs}</div>
+          <div style="font-size:22px;font-weight:700;font-family:monospace;margin-bottom:10px">${p.name}</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.6;max-width:560px">${p.purpose}</div>
+          <div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap">
+            <div style="font-size:12px;color:rgba(255,255,255,0.55)"><i class="ti ti-user-up" style="color:#f5c842"></i> Leaving: <strong style="color:white">${p.owner}</strong></div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.55)"><i class="ti ti-user-down" style="color:#7EE787"></i> Taking over: <strong style="color:white">${p.successor}</strong></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;min-width:280px">
+          <div style="background:rgba(255,255,255,0.08);border-radius:9px;padding:11px 13px;text-align:center"><div style="font-size:22px;font-weight:700">${p.stories}</div><div style="font-size:10px;color:rgba(255,255,255,0.5)">Stories shipped</div></div>
+          <div style="background:rgba(255,255,255,0.08);border-radius:9px;padding:11px 13px;text-align:center"><div style="font-size:22px;font-weight:700">${p.commits}</div><div style="font-size:10px;color:rgba(255,255,255,0.5)">Commits</div></div>
+          <div style="background:rgba(255,255,255,0.08);border-radius:9px;padding:11px 13px;text-align:center"><div style="font-size:22px;font-weight:700">${p.months}</div><div style="font-size:10px;color:rgba(255,255,255,0.5)">Months active</div></div>
+          <div style="background:rgba(255,255,255,0.08);border-radius:9px;padding:11px 13px;text-align:center"><div style="font-size:22px;font-weight:700">${p.contributors}</div><div style="font-size:10px;color:rgba(255,255,255,0.5)">Contributors</div></div>
+          <div style="background:rgba(255,255,255,0.08);border-radius:9px;padding:11px 13px;text-align:center"><div style="font-size:22px;font-weight:700;color:#f5c842">${p.spikes}</div><div style="font-size:10px;color:rgba(255,255,255,0.5)">Spikes/incidents</div></div>
+          <div style="background:rgba(255,255,255,0.08);border-radius:9px;padding:11px 13px;text-align:center"><div style="font-size:22px;font-weight:700;color:${p.health>=70?'#7EE787':p.health>=50?'#f5c842':'#ff8a8a'}">${p.health}%</div><div style="font-size:10px;color:rgba(255,255,255,0.5)">Knowledge coverage</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;margin-bottom:20px">
+      <!-- Timeline -->
+      <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow)">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:7px"><i class="ti ti-timeline" style="color:var(--blue)"></i>Pipeline timeline</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:18px">How this pipeline evolved -- stories, milestones and incidents</div>
+        <div style="position:relative;padding-left:22px">
+          <div style="position:absolute;left:6px;top:4px;bottom:4px;width:2px;background:var(--border)"></div>
+          ${p.timeline.map(t=>`
+            <div style="position:relative;margin-bottom:16px">
+              <div style="position:absolute;left:-22px;top:1px;width:14px;height:14px;border-radius:50%;background:${typeColor[t.type]};border:2px solid white;box-shadow:0 0 0 1px ${typeColor[t.type]}"></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+                <span style="font-size:11px;font-weight:700;color:var(--navy);font-family:monospace">${t.date}</span>
+                <span style="font-size:9px;font-weight:700;padding:1px 7px;border-radius:10px;background:${typeColor[t.type]}1a;color:${typeColor[t.type]};text-transform:uppercase;letter-spacing:.04em">${t.type}</span>
+              </div>
+              <div style="font-size:13px;font-weight:600;color:var(--text)">${t.label}</div>
+              <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-top:2px">${t.detail}</div>
+              <div style="font-size:11px;color:var(--hint);margin-top:3px"><i class="ti ti-user" style="font-size:11px"></i> ${t.who}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Right column: challenges + contributors -->
+      <div>
+        <!-- Key challenges -->
+        <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow);margin-bottom:18px">
+          <div style="font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:7px"><i class="ti ti-alert-hexagon" style="color:var(--amber)"></i>Key challenges</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Watch-outs before you change anything</div>
+          ${p.challenges.map(c=>`
+            <div style="padding:11px 13px;border-radius:9px;background:${sevColor[c.sev]}0d;border-left:3px solid ${sevColor[c.sev]};margin-bottom:9px">
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px">${c.title}</div>
+              <div style="font-size:12px;color:var(--muted);line-height:1.5">${c.detail}</div>
+            </div>`).join('')}
+        </div>
+
+        <!-- Contributor trace -->
+        <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow)">
+          <div style="font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:7px"><i class="ti ti-users-group" style="color:var(--purple)"></i>Who worked on what</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Who to ask about which part</div>
+          ${p.contributorsList.map(c=>`
+            <div style="display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--border)">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--navy);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${c.name.split(' ').map(n=>n[0]).join('')}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:600;color:var(--text)">${c.name}</div>
+                <div style="font-size:11px;color:var(--muted)">${c.focus}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-size:13px;font-weight:700;color:var(--navy)">${c.commits}</div>
+                <div style="font-size:9px;font-weight:700;color:${knowColor[c.knowledge]};text-transform:uppercase">${c.knowledge}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Dependencies -->
+    <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow);margin-bottom:20px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:7px"><i class="ti ti-binary-tree" style="color:var(--green)"></i>Dependencies -- what feeds what</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:18px">Know the blast radius before you change anything</div>
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:center">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Upstream (feeds in)</div>
+          ${p.dependencies.upstream.map(d=>`
+            <div style="padding:9px 12px;background:#f8f9fc;border:1px solid var(--border);border-radius:8px;margin-bottom:7px">
+              <div style="font-size:12px;font-weight:600;color:var(--text);font-family:monospace;display:flex;align-items:center;gap:6px"><i class="ti ti-${d.type==='table'?'table':d.type==='dashboard'?'chart-bar':'git-branch'}" style="color:var(--blue);font-size:13px"></i>${d.name}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">${d.note}</div>
+            </div>`).join('')}
+        </div>
+        <div style="text-align:center;color:var(--blue)"><i class="ti ti-arrow-right" style="font-size:24px"></i></div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Downstream (depends on this)</div>
+          ${p.dependencies.downstream.map(d=>`
+            <div style="padding:9px 12px;background:#f8f9fc;border:1px solid var(--border);border-radius:8px;margin-bottom:7px">
+              <div style="font-size:12px;font-weight:600;color:var(--text);font-family:monospace;display:flex;align-items:center;gap:6px"><i class="ti ti-${d.type==='table'?'table':d.type==='dashboard'?'chart-bar':'git-branch'}" style="color:var(--green);font-size:13px"></i>${d.name}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">${d.note}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Topic clusters: lessons across the codebase -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow)">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:7px"><i class="ti ti-bug" style="color:var(--red)"></i>Common mistakes (by topic)</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Patterns of errors seen across the team -- learn from them, no names attached</div>
+        ${HANDOVER_TOPICS.mistakes.map(t=>`
+          <div style="border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <i class="ti ${t.icon}" style="color:var(--red);font-size:16px"></i>
+              <span style="font-size:13px;font-weight:600;color:var(--text)">${t.topic}</span>
+              <span style="margin-left:auto;font-size:10px;font-weight:700;padding:1px 8px;border-radius:10px;background:#fce8e6;color:var(--red)">${t.count} found</span>
+            </div>
+            ${t.items.map(i=>`<div style="font-size:12px;color:var(--muted);padding:3px 0 3px 22px;line-height:1.5;position:relative"><span style="position:absolute;left:6px;color:var(--red)">&times;</span>${i}</div>`).join('')}
+          </div>`).join('')}
+      </div>
+      <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow)">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:7px"><i class="ti ti-award" style="color:var(--green)"></i>Best practices (by topic)</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Good patterns worth following -- distilled from the whole codebase</div>
+        ${HANDOVER_TOPICS.practices.map(t=>`
+          <div style="border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <i class="ti ${t.icon}" style="color:var(--green);font-size:16px"></i>
+              <span style="font-size:13px;font-weight:600;color:var(--text)">${t.topic}</span>
+              <span style="margin-left:auto;font-size:10px;font-weight:700;padding:1px 8px;border-radius:10px;background:#e6f4ea;color:var(--green)">${t.count} examples</span>
+            </div>
+            ${t.items.map(i=>`<div style="font-size:12px;color:var(--muted);padding:3px 0 3px 22px;line-height:1.5;position:relative"><span style="position:absolute;left:6px;color:var(--green)">&check;</span>${i}</div>`).join('')}
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function downloadHandoverBrief(){
+  const sel=document.getElementById('ho-pipeline');
+  const p=HANDOVER_PIPELINES[sel.value];
+  if(!p) return;
+  let txt='PIPELINE HANDOVER BRIEF\n';
+  txt+='========================\n\n';
+  txt+='Pipeline: '+p.name+'\n';
+  txt+='Value Stream: '+p.vs+'\n';
+  txt+='Leaving: '+p.owner+'  |  Taking over: '+p.successor+'\n\n';
+  txt+='PURPOSE\n'+p.purpose+'\n\n';
+  txt+='AT A GLANCE\n';
+  txt+='- '+p.stories+' stories shipped, '+p.commits+' commits over '+p.months+' months\n';
+  txt+='- '+p.contributors+' contributors, '+p.spikes+' spikes/incidents, '+p.health+'% knowledge coverage\n\n';
+  txt+='KEY CHALLENGES\n';
+  p.challenges.forEach(c=>{ txt+='['+c.sev.toUpperCase()+'] '+c.title+'\n   '+c.detail+'\n'; });
+  txt+='\nWHO WORKED ON WHAT\n';
+  p.contributorsList.forEach(c=>{ txt+='- '+c.name+' ('+c.commits+' commits, '+c.knowledge+' knowledge): '+c.focus+'\n'; });
+  txt+='\nDEPENDENCIES\n';
+  txt+='Upstream:\n'; p.dependencies.upstream.forEach(d=>txt+='  <- '+d.name+' ('+d.note+')\n');
+  txt+='Downstream:\n'; p.dependencies.downstream.forEach(d=>txt+='  -> '+d.name+' ('+d.note+')\n');
+  txt+='\nTIMELINE\n';
+  p.timeline.forEach(t=>txt+='  '+t.date+' ['+t.type+'] '+t.label+' -- '+t.who+'\n     '+t.detail+'\n');
+  const blob=new Blob([txt],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='handover_'+p.name.replace('.py','')+'.txt';
+  a.click();
+}
+// ============ END PIPELINE HANDOVER ============
+
 function showPage(page,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg=document.getElementById('page-'+page); if(pg) pg.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   if(page==='engineers') renderGrid();
+  if(page==='handover') initHandover();
   if(page==='team'){ if(!H) initHierarchy(); else renderCop(); }
 }
 
