@@ -1,0 +1,2205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PipelineIQ V2 - Databricks Code Intelligence</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#05164d;--blue:#378ADD;--green:#1D9E75;--red:#E24B4A;--amber:#BA7517;--purple:#7F77DD;--gray:#888780;
+  --bg:#f4f6fb;--surface:white;--border:#e4e7ef;--text:#1a1a2e;--muted:#5f6368;--hint:#9aa0b0;
+  --radius:10px;--radius-lg:14px;--shadow:0 1px 4px rgba(0,0,0,.07);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+
+/* HEADER */
+.hdr{background:white;border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:200;box-shadow:var(--shadow)}
+.logo-wrap{display:flex;align-items:center;gap:10px}
+.logo-ico{width:32px;height:32px;background:var(--navy);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700}
+.logo-txt{font-size:16px;font-weight:700;color:var(--navy)}
+.logo-v{font-size:11px;color:var(--hint);font-weight:400}
+.hdr-center{display:flex;align-items:center;gap:6px}
+.hdr-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.b-blue{background:#e8f0fe;color:#1a56c4}
+.b-green{background:#e6f4ea;color:#137333}
+.b-amber{background:#fef3e2;color:#a05000}
+.b-red{background:#fce8e6;color:#c5221f}
+.b-gray{background:#f1f3f4;color:#5f6368}
+.b-navy{background:#e8eaf0;color:var(--navy)}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.notif-btn{position:relative;width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.notif-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid white}
+.api-status{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
+.api-dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.api-dot.off{background:var(--red)}
+
+/* SIDEBAR */
+.layout{display:flex;min-height:calc(100vh - 56px)}
+.sidebar{width:220px;background:white;border-right:1px solid var(--border);padding:16px 0;flex-shrink:0;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto}
+.nav-section{padding:0 12px;margin-bottom:4px}
+.nav-lbl{font-size:10px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;padding:10px 8px 5px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px}
+.nav-item:hover{background:#f4f6fb;color:var(--text)}
+.nav-item.active{background:#e8f0fe;color:var(--navy);font-weight:600}
+.nav-item i{font-size:17px}
+.nav-count{margin-left:auto;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;background:#fce8e6;color:var(--red)}
+
+/* MAIN */
+.main-content{flex:1;padding:24px 28px;overflow-x:hidden}
+.page{display:none}
+.page.active{display:block}
+.page-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+.page-title{font-size:20px;font-weight:700}
+.page-sub{font-size:13px;color:var(--muted);margin-top:3px}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.met{background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:var(--shadow)}
+.met-num{font-size:26px;font-weight:700;margin-bottom:4px;line-height:1}
+.met-lbl{font-size:12px;color:var(--muted)}
+.met-trend{font-size:11px;margin-top:5px;font-weight:600}
+
+/* CARDS */
+.card{background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow);margin-bottom:16px}
+.card-hdr{font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+
+/* ARCHETYPE BARS */
+.at-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.at-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.at-name{font-size:13px;flex:1}
+.at-bw{flex:2;height:6px;background:#f1f3f4;border-radius:3px;overflow:hidden}
+.at-bf{height:100%;border-radius:3px}
+.at-ct{font-size:12px;color:var(--hint);min-width:22px;text-align:right}
+
+/* COMPLIANCE */
+.comp-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.comp-rule{font-size:13px;flex:1}
+.comp-bw{width:90px;height:7px;background:#f1f3f4;border-radius:4px;overflow:hidden;flex-shrink:0}
+.comp-bf{height:100%;border-radius:4px}
+.comp-pct{font-size:12px;color:var(--muted);min-width:30px;text-align:right}
+
+/* RISK ITEMS */
+.risk-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #f8f9fc}
+.risk-item:last-child{border-bottom:none}
+.risk-name{font-size:13px;font-weight:600;margin-bottom:2px}
+.risk-reason{font-size:11px;color:var(--muted)}
+
+/* ENGINEER GRID */
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.fl{font-size:12px;color:var(--muted);margin-right:2px}
+.fbtn{padding:5px 12px;border-radius:20px;font-size:12px;border:1px solid var(--border);background:white;color:var(--muted);cursor:pointer;transition:all .15s}
+.fbtn:hover{border-color:#aaa;color:var(--text)}
+.fbtn.active{background:var(--navy);color:white;border-color:var(--navy)}
+.eng-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:20px}
+.eng-card{background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:13px;cursor:pointer;transition:all .15s;box-shadow:var(--shadow)}
+.eng-card:hover{border-color:#aab;transform:translateY(-1px)}
+.eng-card.sel{border:2px solid var(--blue)}
+.eng-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-bottom:8px}
+.eng-name{font-size:13px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eng-type{font-size:10px;color:var(--hint);margin-bottom:7px}
+.eng-foot{display:flex;align-items:center;justify-content:space-between}
+.spill{font-size:11px;padding:2px 7px;border-radius:20px;font-weight:600}
+.s-hi{background:#e6f4ea;color:#137333}
+.s-me{background:#fef3e2;color:#a05000}
+.s-lo{background:#fce8e6;color:#c5221f}
+
+/* ENGINEER PANEL */
+.panel{background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;box-shadow:var(--shadow);margin-bottom:20px}
+.panel-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:18px}
+.panel-name{font-size:17px;font-weight:700}
+.panel-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.act-row{display:flex;gap:8px}
+.btn-sm{display:flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:white;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);transition:all .15s}
+.btn-sm:hover{background:#f4f6fb}
+.btn-primary{background:var(--navy);color:white;border-color:var(--navy)}
+.btn-primary:hover{background:#0a1f5c}
+.sec-h{font-size:10px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 9px}
+.style-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:4px}
+.sbox{background:#f8f9fc;border-radius:8px;padding:10px 12px}
+.slbl{font-size:10px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.sval{font-size:13px;color:var(--text)}
+.code-block{background:#1a1b2e;border-radius:10px;padding:14px 16px;font-family:"SF Mono","Fira Code","Consolas",monospace;font-size:12px;color:#c9d1ff;line-height:1.75;overflow-x:auto;margin-top:4px;white-space:pre}
+.brief-box{background:#f0f4ff;border:1px solid #d0ddf8;border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.8;color:var(--text)}
+.risk-box{border-radius:8px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.risk-high{background:#fff0f0;border:1px solid #ffd0d0}
+.risk-med{background:#fefbf0;border:1px solid #fde8b5}
+
+/* COMMIT HISTORY */
+.commit-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f4f6fb}
+.commit-row:last-child{border-bottom:none}
+.commit-hash{font-family:monospace;font-size:11px;color:var(--blue);background:#e8f0fe;padding:2px 7px;border-radius:5px;flex-shrink:0}
+.commit-msg{font-size:12px;flex:1}
+.commit-date{font-size:11px;color:var(--hint);flex-shrink:0}
+.commit-score{font-size:11px;font-weight:700;min-width:36px;text-align:right}
+
+/* ALERTS */
+.alert-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;margin-bottom:10px;border:1px solid}
+.alert-crit{background:#fff0f0;border-color:#ffd0d0}
+.alert-warn{background:#fefbf0;border-color:#fde8b5}
+.alert-info{background:#f0f4ff;border-color:#d0ddf8}
+.alert-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.alert-title{font-size:13px;font-weight:600;margin-bottom:3px}
+.alert-body{font-size:12px;color:var(--muted);line-height:1.6}
+.alert-time{font-size:11px;color:var(--hint);margin-top:4px}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius-lg);padding:2.5rem;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:14px}
+.upload-zone:hover{border-color:#aab;background:#fafbfe}
+.upload-zone.drag{border-color:var(--blue);background:#f0f6ff}
+.priv-box{background:#e6f4ea;border:1px solid #b5d5be;border-radius:8px;padding:10px 14px;font-size:12px;color:#137333;display:flex;align-items:flex-start;gap:7px;margin-bottom:14px}
+
+/* ANALYSIS RESULT */
+.analysis-result{background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 22px;margin-top:16px;display:none}
+.analysis-loading{text-align:center;padding:2rem;display:none}
+.spinner{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:.4;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes barFill{from{width:0}to{width:var(--w)}}
+.piq-loader{padding:2rem 1.5rem;display:none}
+.piq-orbit{position:relative;width:96px;height:96px;margin:0 auto 28px}
+.piq-orbit-core{position:absolute;inset:20px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center}
+.piq-orbit-core i{font-size:22px;color:white}
+.piq-orbit-ring1{position:absolute;inset:4px;border-radius:50%;border:2px solid transparent;border-top-color:#378ADD;border-right-color:#378ADD;animation:spin .9s linear infinite}
+.piq-orbit-ring2{position:absolute;inset:-4px;border-radius:50%;border:2px solid transparent;border-bottom-color:#1D9E75;border-left-color:#1D9E75;animation:spin 1.4s linear infinite reverse}
+.piq-orbit-dot{position:absolute;width:8px;height:8px;border-radius:50%;background:#7F77DD;top:2px;left:50%;transform:translateX(-50%);animation:spin 2s linear infinite}
+.piq-title{font-size:16px;font-weight:700;color:var(--navy);text-align:center;margin-bottom:6px}
+.piq-subtitle{font-size:13px;color:var(--muted);text-align:center;margin-bottom:24px}
+.piq-stages{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-width:480px;margin:0 auto 20px}
+.piq-stage{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 6px;border-radius:10px;border:1px solid var(--border);background:white;transition:all .3s;opacity:.35}
+.piq-stage.active{opacity:1;border-color:#378ADD;background:#e8f4ff;transform:translateY(-3px)}
+.piq-stage.done{opacity:1;border-color:#1D9E75;background:#e6f9f1}
+.piq-stage i{font-size:18px;color:var(--hint)}
+.piq-stage.active i{color:#1a56c4}
+.piq-stage.done i{color:#137333}
+.piq-stage-lbl{font-size:10px;font-weight:600;color:var(--hint);text-align:center;line-height:1.3}
+.piq-stage.active .piq-stage-lbl{color:#1a56c4}
+.piq-stage.done .piq-stage-lbl{color:#137333}
+.piq-track{max-width:480px;margin:0 auto}
+.piq-track-bar{height:3px;background:#f1f3f4;border-radius:2px;overflow:hidden;margin-bottom:6px}
+.piq-track-fill{height:100%;background:linear-gradient(to right,#378ADD,#7F77DD,#1D9E75);border-radius:2px;transition:width .9s cubic-bezier(.4,0,.2,1)}
+.piq-track-txt{font-size:11px;color:var(--hint);text-align:center}
+.piq-token-strip{max-width:480px;margin:12px auto 0;display:flex;gap:5px;flex-wrap:wrap;justify-content:center;min-height:22px}
+.piq-token{font-size:10px;font-family:monospace;padding:2px 8px;border-radius:20px;background:#f8f9fc;border:1px solid var(--border);color:var(--muted);animation:logSlide .2s ease}
+
+/* WEBHOOK */
+.webhook-box{background:#f8f9fc;border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-family:monospace;font-size:12px;color:var(--text);line-height:1.7;margin-bottom:10px}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.dot-green{background:var(--green)}
+.dot-amber{background:#e6a817}
+.dot-red{background:var(--red)}
+.timeline{position:relative;padding-left:20px}
+.tl-item{position:relative;padding-bottom:16px}
+.tl-item::before{content:'';position:absolute;left:-14px;top:6px;bottom:-10px;width:1px;background:var(--border)}
+.tl-item:last-child::before{display:none}
+.tl-dot{position:absolute;left:-18px;top:4px;width:9px;height:9px;border-radius:50%;border:2px solid white}
+.tl-time{font-size:11px;color:var(--hint)}
+.tl-msg{font-size:13px;margin-top:1px}
+.tl-meta{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* STD RULES */
+.rule-box{background:#f8f9fc;border-radius:8px;padding:9px 13px;margin-bottom:7px;display:flex;align-items:flex-start;gap:9px}
+.rule-num{width:20px;height:20px;border-radius:50%;background:var(--navy);color:white;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px}
+
+/* API KEY INPUT */
+.api-input-row{display:flex;gap:8px;margin-bottom:10px}
+.api-input{flex:1;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:monospace;color:var(--text);background:white}
+.api-input:focus{outline:none;border-color:var(--blue)}
+
+.hidden{display:none}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+@keyframes flowPulse{0%,100%{box-shadow:0 0 0 0 rgba(55,138,221,0.4)}70%{box-shadow:0 0 0 8px rgba(55,138,221,0)}}
+@keyframes logSlide{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+@keyframes scoreFlash{0%,100%{background:white}50%{background:#e6f4ea}}
+.flow-step.active .flow-icon{border-color:var(--blue)!important;background:#e8f0fe!important;animation:flowPulse 1.2s infinite}
+.flow-step.active .flow-icon i{color:#1a56c4!important}
+.flow-step.active div:nth-child(2){color:var(--navy)!important}
+.flow-step.done .flow-icon{border-color:var(--green)!important;background:#e6f4ea!important}
+.flow-step.done .flow-icon i{color:#137333!important}
+.log-line{animation:logSlide .25s ease;margin-bottom:4px}
+.score-flash{animation:scoreFlash .8s ease}
+@media print{.hdr,.sidebar,.act-row,.filter-row,.eng-grid,.upload-zone,.priv-box,.api-input-row{display:none!important}.panel{box-shadow:none;border:1px solid #ddd}.page{display:block!important}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo-wrap">
+    <div class="logo-ico">PIQ</div>
+    <div>
+      <span class="logo-txt">PipelineIQ</span>
+      <span class="logo-v">&nbsp;V2</span>
+    </div>
+    <div style="border-left:1px solid var(--border);padding-left:12px;margin-left:8px">
+      <div style="font-size:12px;font-weight:600;color:var(--navy)">Ganeshbalan Pandy</div>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--hint)">LHG Digital Hangar &middot; Databricks Code Intelligence</div>
+  <div class="hdr-right">
+    <button class="notif-btn" onclick="showPage('alerts',document.querySelector('[data-page=alerts]'))" title="View alerts">
+      <i class="ti ti-bell" style="font-size:17px"></i>
+      <div class="notif-dot" id="notif-dot"></div>
+    </button>
+  </div>
+</div>
+
+
+<!-- LANDING HERO -->
+<div id="landing" style="background:white;border-bottom:1px solid var(--border)">
+
+  <!-- Hero -->
+  <div style="background:linear-gradient(135deg,#05164d 0%,#0a2a7a 100%);padding:72px 28px;text-align:center;position:relative;overflow:hidden">
+    <div style="position:absolute;top:0;left:0;right:0;bottom:0;background-image:radial-gradient(circle at 20% 50%,rgba(55,138,221,0.15) 0%,transparent 50%),radial-gradient(circle at 80% 20%,rgba(245,168,0,0.1) 0%,transparent 40%);pointer-events:none"></div>
+    <div style="position:relative;max-width:760px;margin:0 auto">
+      <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:rgba(245,168,0,0.15);border:1px solid rgba(245,168,0,0.3);font-size:12px;font-weight:600;color:#f5c842;margin-bottom:24px">
+        <i class="ti ti-brand-databricks" style="font-size:13px"></i>
+        Databricks Code Intelligence
+      </div>
+      <div style="font-size:46px;font-weight:700;color:white;line-height:1.2;margin-bottom:16px;letter-spacing:-0.5px">
+        When an engineer leaves,<br><span style="color:#f5c842">their knowledge should not.</span>
+      </div>
+      <div style="font-size:18px;color:rgba(255,255,255,0.6);margin-bottom:36px;line-height:1.7;max-width:580px;margin-left:auto;margin-right:auto">
+        PipelineIQ analyses your Databricks notebooks, fingerprints every engineer's coding style, and generates a a clear handover brief before they walk out the door.
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap">
+        <button onclick="document.getElementById('dashboard-anchor').scrollIntoView({behavior:'smooth'})" style="padding:13px 28px;background:#f5a800;color:#05164d;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px">
+          <i class="ti ti-layout-dashboard" style="font-size:16px"></i>
+          View Dashboard
+        </button>
+        <button onclick="showPage('upload',document.querySelector('[data-page=upload]'));document.getElementById('dashboard-anchor').scrollIntoView({behavior:'smooth'})" style="padding:13px 28px;background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.25);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px">
+          <i class="ti ti-upload" style="font-size:16px"></i>
+          Analyse a Notebook
+        </button>
+      </div>
+      <div style="margin-top:28px;font-size:12px;color:rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap">
+        <span><i class="ti ti-shield-check" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Tokenisation layer active</span>
+        <span><i class="ti ti-git-branch" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Bitbucket webhook ready</span>
+        <span><i class="ti ti-brain" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Powered by Claude Sonnet</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Problem strip -->
+  <div style="background:#fff8f0;border-top:1px solid #fde8c0;border-bottom:1px solid #fde8c0;padding:20px 28px">
+    <div style="max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;text-align:center">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="width:48px;height:48px;border-radius:12px;background:#fef3e2;display:flex;align-items:center;justify-content:center;margin-bottom:4px"><i class="ti ti-user-minus" style="font-size:22px;color:#a05000"></i></div>
+        <div style="font-size:13px;font-weight:700;color:#a05000">Engineer leaves after 5 years</div>
+        <div style="font-size:12px;color:#888;line-height:1.6">Takes all implicit knowledge about why the pipeline was built that way</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="width:48px;height:48px;border-radius:12px;background:#fce8e6;display:flex;align-items:center;justify-content:center;margin-bottom:4px"><i class="ti ti-file-off" style="font-size:22px;color:#c5221f"></i></div>
+        <div style="font-size:13px;font-weight:700;color:#a05000">Knowledge gap appears</div>
+        <div style="font-size:12px;color:#888;line-height:1.6">No documentation. Custom FX logic. Hardcoded dates. Silent failure risks.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="width:48px;height:48px;border-radius:12px;background:#fef3e2;display:flex;align-items:center;justify-content:center;margin-bottom:4px"><i class="ti ti-clock-pause" style="font-size:22px;color:#a05000"></i></div>
+        <div style="font-size:13px;font-weight:700;color:#a05000">New engineer takes 6 weeks to onboard</div>
+        <div style="font-size:12px;color:#888;line-height:1.6">Just to understand what was built. Before writing a single line of new code.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Solution cards -->
+  <div style="padding:48px 28px;background:#f8f9fc">
+    <div style="max-width:900px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:32px">
+        <div style="font-size:24px;font-weight:700;color:#05164d">PipelineIQ solves this in three steps</div>
+        <div style="font-size:14px;color:#888;margin-top:6px">Automatically. Before the engineer leaves.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+
+        <!-- Card 1: Style Fingerprint -->
+        <div id="card-fingerprint" style="background:white;border:1px solid var(--border);border-radius:14px;padding:22px;border-top:3px solid #378ADD;cursor:pointer;transition:box-shadow .2s" >
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+            <div style="width:40px;height:40px;border-radius:10px;background:#e8f0fe;display:flex;align-items:center;justify-content:center">
+              <i class="ti ti-fingerprint" style="font-size:20px;color:#1a56c4"></i>
+            </div>
+            <i class="ti ti-chevron-down" id="chev-fingerprint" style="font-size:16px;color:#aaa;transition:transform .2s;margin-top:4px"></i>
+          </div>
+          <div style="font-size:15px;font-weight:700;color:#05164d;margin-bottom:6px">Style fingerprint</div>
+          <div style="font-size:13px;color:#666;line-height:1.7">How does this engineer structure DataFrames? Handle nulls? Reference Unity Catalog tables? Extract it all automatically.</div>
+          <!-- Expanded -->
+          <div id="expand-fingerprint" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid #f0f2f8">
+            <div style="font-size:11px;font-weight:700;color:#1a56c4;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">7 dimensions captured</div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="background:#f0f4ff;border-radius:7px;padding:8px 10px">
+                <div style="font-size:11px;font-weight:700;color:#1a56c4;margin-bottom:2px">DataFrame style</div>
+                <div style="font-size:12px;color:#555">Method chaining vs intermediate assignments vs spark.sql() preference</div>
+              </div>
+              <div style="background:#f0f4ff;border-radius:7px;padding:8px 10px">
+                <div style="font-size:11px;font-weight:700;color:#1a56c4;margin-bottom:2px">Null handling</div>
+                <div style="font-size:12px;color:#555">Defensive checks before joins, coalesce patterns, or trust upstream</div>
+              </div>
+              <div style="background:#f0f4ff;border-radius:7px;padding:8px 10px">
+                <div style="font-size:11px;font-weight:700;color:#1a56c4;margin-bottom:2px">UC table references</div>
+                <div style="font-size:12px;color:#555">Fully qualified catalog.schema.table vs USE statement vs short names</div>
+              </div>
+              <div style="background:#f0f4ff;border-radius:7px;padding:8px 10px">
+                <div style="font-size:11px;font-weight:700;color:#1a56c4;margin-bottom:2px">Entity filter approach</div>
+                <div style="font-size:12px;color:#555">How LH, LX, OS, SN are filtered -- explicit list, wildcard, or dynamic config</div>
+              </div>
+              <div style="background:#f0f4ff;border-radius:7px;padding:8px 10px">
+                <div style="font-size:11px;font-weight:700;color:#1a56c4;margin-bottom:2px">Error handling</div>
+                <div style="font-size:12px;color:#555">try/except depth, audit log writes, retry logic or none</div>
+              </div>
+              <div style="background:#f0f4ff;border-radius:7px;padding:8px 10px">
+                <div style="font-size:11px;font-weight:700;color:#1a56c4;margin-bottom:2px">Date logic</div>
+                <div style="font-size:12px;color:#555">Departure date vs booking date vs event time watermarks</div>
+              </div>
+              <div style="background:#f0f4ff;border-radius:7px;padding:8px 10px">
+                <div style="font-size:11px;font-weight:700;color:#1a56c4;margin-bottom:2px">FX rate approach</div>
+                <div style="font-size:12px;color:#555">lhg_prod.ref.fx_rates with join date vs hardcoded rate vs custom model</div>
+              </div>
+            </div>
+            <div style="margin-top:10px;padding:8px 10px;background:#1a1b2e;border-radius:7px;font-family:monospace;font-size:11px;color:#c9d1ff;line-height:2;white-space:pre;overflow-x:auto;display:block">
+<span style="color:#7aa2f7">DataFrame style: </span>Long method chains
+<span style="color:#7aa2f7">Null handling:   </span>Minimal -- trusts upstream
+<span style="color:#7aa2f7">UC references:   </span>Fully qualified always
+<span style="color:#7aa2f7">Entity filter:   </span>Explicit isin() list</div>
+          </div>
+        </div>
+
+        <!-- Card 2: Risk Register -->
+        <div id="card-risk" style="background:white;border:1px solid var(--border);border-radius:14px;padding:22px;border-top:3px solid #E24B4A;cursor:pointer;transition:box-shadow .2s" >
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+            <div style="width:40px;height:40px;border-radius:10px;background:#fce8e6;display:flex;align-items:center;justify-content:center">
+              <i class="ti ti-alert-triangle" style="font-size:20px;color:#c5221f"></i>
+            </div>
+            <i class="ti ti-chevron-down" id="chev-risk" style="font-size:16px;color:#aaa;transition:transform .2s;margin-top:4px"></i>
+          </div>
+          <div style="font-size:15px;font-weight:700;color:#05164d;margin-bottom:6px">Risk register</div>
+          <div style="font-size:13px;color:#666;line-height:1.7">What is fragile? What assumptions are hardcoded? What would break if touched? Flagged automatically before it becomes a problem.</div>
+          <!-- Expanded -->
+          <div id="expand-risk" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid #f0f2f8">
+            <div style="font-size:11px;font-weight:700;color:#c5221f;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">4 risk categories detected</div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="background:#fff0f0;border:1px solid #ffd0d0;border-radius:7px;padding:8px 10px">
+                <div style="font-size:11px;font-weight:700;color:#c5221f;margin-bottom:2px">Institutional knowledge risk</div>
+                <div style="font-size:12px;color:#555">Years of implicit context embedded in code -- not documented anywhere else</div>
+                <div style="font-size:11px;color:#c5221f;margin-top:3px;font-weight:600">Example: FX logic with finance sign-off from Oct 2023 -- undocumented</div>
+              </div>
+              <div style="background:#fff0f0;border:1px solid #ffd0d0;border-radius:7px;padding:8px 10px">
+                <div style="font-size:11px;font-weight:700;color:#c5221f;margin-bottom:2px">Hardcoded values</div>
+                <div style="font-size:12px;color:#555">Dates, rates, thresholds baked into code that should be config-driven</div>
+                <div style="font-size:11px;color:#c5221f;margin-top:3px;font-weight:600">Example: EUR rate hardcoded at 1.08 instead of lhg_prod.ref.fx_rates</div>
+              </div>
+              <div style="background:#fefbf0;border:1px solid #fde8b5;border-radius:7px;padding:8px 10px">
+                <div style="font-size:11px;font-weight:700;color:#a05000;margin-bottom:2px">Silent failure points</div>
+                <div style="font-size:12px;color:#555">Joins without null checks that will silently corrupt data on schema changes</div>
+                <div style="font-size:11px;color:#a05000;margin-top:3px;font-weight:600">Example: Passenger join with no null validation on passenger_id</div>
+              </div>
+              <div style="background:#fefbf0;border:1px solid #fde8b5;border-radius:7px;padding:8px 10px">
+                <div style="font-size:11px;font-weight:700;color:#a05000;margin-bottom:2px">Single point of failure</div>
+                <div style="font-size:12px;color:#555">Technology or pattern only this engineer uses -- no team backup exists</div>
+                <div style="font-size:11px;color:#a05000;margin-top:3px;font-weight:600">Example: Delta Live Tables -- no other engineer on the team uses DLT</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Handover Brief -->
+        <div id="card-brief" style="background:white;border:1px solid var(--border);border-radius:14px;padding:22px;border-top:3px solid #1D9E75;cursor:pointer;transition:box-shadow .2s" >
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+            <div style="width:40px;height:40px;border-radius:10px;background:#e6f4ea;display:flex;align-items:center;justify-content:center">
+              <i class="ti ti-file-text" style="font-size:20px;color:#137333"></i>
+            </div>
+            <i class="ti ti-chevron-down" id="chev-brief" style="font-size:16px;color:#aaa;transition:transform .2s;margin-top:4px"></i>
+          </div>
+          <div style="font-size:15px;font-weight:700;color:#05164d;margin-bottom:6px">Handover brief</div>
+          <div style="font-size:13px;color:#666;line-height:1.7">30 minutes to read. Everything the next engineer needs before touching a single notebook.</div>
+          <!-- Expanded -->
+          <div id="expand-brief" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid #f0f2f8">
+            <div style="font-size:11px;font-weight:700;color:#137333;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">5 sections in every brief</div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="background:#e6f4ea;border-radius:7px;padding:8px 10px;display:flex;align-items:flex-start;gap:8px">
+                <span style="font-size:14px;flex-shrink:0">1.</span>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:#137333;margin-bottom:2px">Who this engineer is</div>
+                  <div style="font-size:12px;color:#555">Archetype, years on team, areas of ownership, key strengths</div>
+                </div>
+              </div>
+              <div style="background:#e6f4ea;border-radius:7px;padding:8px 10px;display:flex;align-items:flex-start;gap:8px">
+                <span style="font-size:14px;flex-shrink:0">2.</span>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:#137333;margin-bottom:2px">How their code is structured</div>
+                  <div style="font-size:12px;color:#555">Style fingerprint summary with the most important patterns to know</div>
+                </div>
+              </div>
+              <div style="background:#e6f4ea;border-radius:7px;padding:8px 10px;display:flex;align-items:flex-start;gap:8px">
+                <span style="font-size:14px;flex-shrink:0">3.</span>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:#137333;margin-bottom:2px">LHG-specific knowledge</div>
+                  <div style="font-size:12px;color:#555">Entity logic, date conventions, FX approach, UC schema assumptions</div>
+                </div>
+              </div>
+              <div style="background:#e6f4ea;border-radius:7px;padding:8px 10px;display:flex;align-items:flex-start;gap:8px">
+                <span style="font-size:14px;flex-shrink:0">4.</span>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:#137333;margin-bottom:2px">What to watch out for</div>
+                  <div style="font-size:12px;color:#555">Risk register summary -- the three things most likely to break</div>
+                </div>
+              </div>
+              <div style="background:#e6f4ea;border-radius:7px;padding:8px 10px;display:flex;align-items:flex-start;gap:8px">
+                <span style="font-size:14px;flex-shrink:0">5.</span>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:#137333;margin-bottom:2px">Where to start</div>
+                  <div style="font-size:12px;color:#555">Recommended first 3 notebooks to read, in order, with reason why</div>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:10px;padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;font-size:12px;color:#137333;line-height:1.6">
+              Estimated onboarding time with this brief: <strong>2-3 days</strong><br>
+              Without this brief: <strong>4-6 weeks</strong>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div style="padding:48px 28px;background:white">
+    <div style="max-width:900px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:32px">
+        <div style="font-size:24px;font-weight:700;color:#05164d">How it works</div>
+        <div style="font-size:14px;color:#888;margin-top:6px">Zero change to your engineering workflow</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;position:relative">
+        <div style="position:absolute;top:28px;left:calc(12.5% + 20px);right:calc(12.5% + 20px);height:2px;background:linear-gradient(to right,#378ADD,#1D9E75);z-index:0"></div>
+        <div style="text-align:center;position:relative;z-index:1">
+          <div style="width:56px;height:56px;border-radius:50%;background:#e8f0fe;border:2px solid #378ADD;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;background:white">
+            <i class="ti ti-git-commit" style="color:#378ADD;font-size:22px"></i>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:#05164d;margin-bottom:4px">1. Commit</div>
+          <div style="font-size:12px;color:#888;line-height:1.6">Engineer commits notebook to Bitbucket as normal</div>
+        </div>
+        <div style="text-align:center;position:relative;z-index:1">
+          <div style="width:56px;height:56px;border-radius:50%;background:white;border:2px solid #BA7517;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+            <i class="ti ti-shield-lock" style="color:#BA7517;font-size:22px"></i>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:#05164d;margin-bottom:4px">2. Tokenise</div>
+          <div style="font-size:12px;color:#888;line-height:1.6">Credentials and table names replaced with tokens in browser</div>
+        </div>
+        <div style="text-align:center;position:relative;z-index:1">
+          <div style="width:56px;height:56px;border-radius:50%;background:white;border:2px solid #7F77DD;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+            <i class="ti ti-brain" style="color:#7F77DD;font-size:22px"></i>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:#05164d;margin-bottom:4px">3. Analyse</div>
+          <div style="font-size:12px;color:#888;line-height:1.6">Claude Sonnet analyses code style, compliance and risks</div>
+        </div>
+        <div style="text-align:center;position:relative;z-index:1">
+          <div style="width:56px;height:56px;border-radius:50%;background:white;border:2px solid #1D9E75;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+            <i class="ti ti-layout-dashboard" style="color:#1D9E75;font-size:22px"></i>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:#05164d;margin-bottom:4px">4. Dashboard</div>
+          <div style="font-size:12px;color:#888;line-height:1.6">Team view updates automatically, alerts fire on risk changes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div style="background:#05164d;padding:28px;text-align:center">
+    <div style="max-width:700px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+      <div><div style="font-size:28px;font-weight:700;color:#f5a800">50</div><div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:3px">Engineers analysed</div></div>
+      <div><div style="font-size:28px;font-weight:700;color:#f5a800">5</div><div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:3px">Coding archetypes</div></div>
+      <div><div style="font-size:28px;font-weight:700;color:#f5a800">2-3</div><div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:3px">Days to onboard</div></div>
+      <div><div style="font-size:28px;font-weight:700;color:#f5a800">7</div><div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:3px">LHG coding rules</div></div>
+    </div>
+  </div>
+
+  <!-- CTA to scroll into tool -->
+  <div style="padding:28px;text-align:center;background:#f8f9fc;border-bottom:1px solid var(--border)">
+    <div style="font-size:15px;font-weight:600;color:#05164d;margin-bottom:12px">Ready to explore the dashboard?</div>
+    <button onclick="document.getElementById('dashboard-anchor').scrollIntoView({behavior:'smooth'})" style="padding:11px 24px;background:#05164d;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px">
+      <i class="ti ti-arrow-down" style="font-size:15px"></i>
+      Jump to Dashboard
+    </button>
+    <div style="font-size:12px;color:#aaa;margin-top:10px">Built by Ganeshbalan Pandy &middot; PipelineIQ V2 &middot; Powered by Claude Sonnet</div>
+  </div>
+
+</div>
+<!-- END LANDING -->
+<div id="dashboard-anchor"></div>
+<div class="layout">
+  <div class="sidebar">
+    <div class="nav-section">
+      <div class="nav-lbl">Overview</div>
+      <div class="nav-item active" data-page="team" onclick="showPage('team',this)"><i class="ti ti-layout-dashboard"></i>Team overview</div>
+      <div class="nav-item" data-page="alerts" onclick="showPage('alerts',this)"><i class="ti ti-bell"></i>Alerts<span class="nav-count" id="alert-count">3</span></div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-lbl">Engineers</div>
+      <div class="nav-item" data-page="engineers" onclick="showPage('engineers',this)"><i class="ti ti-users"></i>All engineers</div>
+      <div class="nav-item" data-page="commits" onclick="showPage('commits',this)"><i class="ti ti-git-commit"></i>Commit history</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-lbl">Analysis</div>
+      <div class="nav-item" data-page="standards" onclick="showPage('standards',this)"><i class="ti ti-list-check"></i>Standards</div>
+      <div class="nav-item" data-page="upload" onclick="showPage('upload',this)"><i class="ti ti-upload"></i>Analyse notebook</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-lbl">Settings</div>
+      <div class="nav-item" data-page="webhook" onclick="showPage('webhook',this)"><i class="ti ti-webhook"></i>Webhook setup</div>
+      <div class="nav-item" data-page="apikey" onclick="showPage('apikey',this)"><i class="ti ti-key"></i>API key</div>
+      <div class="nav-item" data-page="about" onclick="showPage('about',this)"><i class="ti ti-info-circle"></i>About</div>
+    </div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- TEAM OVERVIEW -->
+    <div id="page-team" class="page active">
+
+      <!-- BREADCRUMB -->
+      <div id="breadcrumb" style="display:flex;align-items:center;gap:6px;margin-bottom:20px;flex-wrap:wrap">
+        <span id="bc-cop" class="bc-item bc-active" onclick="drillTo('cop')" style="cursor:pointer;font-size:13px;font-weight:600;color:var(--navy);padding:4px 10px;background:#e8f0fe;border-radius:20px">CoP Data Engineering</span>
+        <span id="bc-vs-sep" style="display:none;color:var(--hint);font-size:13px">›</span>
+        <span id="bc-vs" style="display:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--navy);padding:4px 10px;background:#e8f0fe;border-radius:20px" onclick="drillTo('vs')"></span>
+        <span id="bc-art-sep" style="display:none;color:var(--hint);font-size:13px">›</span>
+        <span id="bc-art" style="display:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--navy);padding:4px 10px;background:#e8f0fe;border-radius:20px" onclick="drillTo('art')"></span>
+        <span id="bc-team-sep" style="display:none;color:var(--hint);font-size:13px">›</span>
+        <span id="bc-team" style="display:none;font-size:13px;font-weight:600;color:var(--navy);padding:4px 10px;background:#e8f0fe;border-radius:20px"></span>
+      </div>
+
+      <!-- DRILL VIEWS -->
+      <div id="view-cop"></div>
+      <div id="view-vs" style="display:none"></div>
+      <div id="view-art" style="display:none"></div>
+      <div id="view-team" style="display:none"></div>
+      <div id="eng-panel-hier"></div>
+    </div>
+
+    <!-- ALERTS -->
+    <div id="page-alerts" class="page">
+      <div class="page-hdr"><div><div class="page-title">Alerts</div><div class="page-sub">Automated compliance and risk notifications</div></div></div>
+      <div class="alert-item alert-crit">
+        <div class="alert-icon" style="color:var(--red)"><i class="ti ti-alert-triangle"></i></div>
+        <div>
+          <div class="alert-title">Finance sign-off code modified -- Stefan W.</div>
+          <div class="alert-body">Commit a4f2c91 modified the FX conversion logic in booking_revenue_lh.py. This section has a finance sign-off comment from Oct 2023. Compliance score dropped from 71% to 58%. Review recommended before merge.</div>
+          <div class="alert-time">2 hours ago &middot; booking_revenue_lh.py</div>
+        </div>
+      </div>
+      <div class="alert-item alert-crit">
+        <div class="alert-icon" style="color:var(--red)"><i class="ti ti-alert-triangle"></i></div>
+        <div>
+          <div class="alert-title">Hardcoded FX rate detected -- Junior engineer</div>
+          <div class="alert-body">Commit 8b3d112 introduced a hardcoded EUR rate (1.08) in ancillary_revenue.py. Standard requires lhg_prod.ref.fx_rates. This will produce incorrect results when EUR moves beyond this rate.</div>
+          <div class="alert-time">Yesterday &middot; ancillary_revenue.py</div>
+        </div>
+      </div>
+      <div class="alert-item alert-warn">
+        <div class="alert-icon" style="color:var(--amber)"><i class="ti ti-info-circle"></i></div>
+        <div>
+          <div class="alert-title">New engineer added 3 notebooks -- no handover brief yet</div>
+          <div class="alert-body">Fatima A. committed 3 new notebooks this week. No handover brief has been generated. Recommend running PipelineIQ analysis before these notebooks are connected to ADF production pipelines.</div>
+          <div class="alert-time">3 days ago &middot; 3 notebooks</div>
+        </div>
+      </div>
+      <div class="alert-item alert-info">
+        <div class="alert-icon" style="color:var(--blue)"><i class="ti ti-info-circle"></i></div>
+        <div>
+          <div class="alert-title">Weekly compliance report ready</div>
+          <div class="alert-body">Team compliance this week: 62% (down 3% from last week). Primary gap remains error handling at 34%. 8 engineers now classified as departure critical.</div>
+          <div class="alert-time">Monday 08:00 &middot; Weekly digest</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENGINEERS -->
+    <div id="page-engineers" class="page">
+      <div class="page-hdr"><div><div class="page-title">Engineers</div><div class="page-sub">Click any engineer to view their full profile, style fingerprint and handover brief</div></div></div>
+      <div class="filter-row">
+        <span class="fl">Archetype:</span>
+        <button class="fbtn active" onclick="filterEng('all',this)">All (50)</button>
+        <button class="fbtn" onclick="filterEng('veteran',this)">Veteran</button>
+        <button class="fbtn" onclick="filterEng('chain',this)">Chain master</button>
+        <button class="fbtn" onclick="filterEng('sql',this)">SQL native</button>
+        <button class="fbtn" onclick="filterEng('junior',this)">Junior</button>
+        <button class="fbtn" onclick="filterEng('experimenter',this)">Experimenter</button>
+      </div>
+      <div class="filter-row">
+        <span class="fl">Risk:</span>
+        <button class="fbtn active" onclick="filterRisk('all',this)">All</button>
+        <button class="fbtn" onclick="filterRisk('high',this)">Departure critical</button>
+        <button class="fbtn" onclick="filterRisk('medium',this)">Medium risk</button>
+        <button class="fbtn" onclick="filterRisk('low',this)">Low risk</button>
+      </div>
+      <div class="eng-grid" id="eng-grid"></div>
+      <div id="eng-panel"></div>
+    </div>
+
+    <!-- COMMIT HISTORY -->
+    <div id="page-commits" class="page">
+      <div class="page-hdr"><div><div class="page-title">Commit history</div><div class="page-sub">Last 10 commits per engineer &middot; Auto-analysed via Bitbucket webhook</div></div></div>
+      <div class="card">
+        <div class="card-hdr" style="display:flex;align-items:center;justify-content:space-between">
+        Recent commits across all engineers
+        <span style="font-size:11px;color:var(--hint);font-weight:400">% = compliance score after commit &nbsp; &#9650; improved &nbsp; &#9660; dropped</span>
+      </div>
+        <div class="commit-row"><span class="commit-hash">a4f2c91</span><div class="commit-msg"><strong>Stefan W.</strong> -- Modified FX conversion logic in booking_revenue_lh.py</div><span class="commit-date">2h ago</span><span class="commit-score" style="color:var(--red)">58% &#9660;</span></div>
+        <div class="commit-row"><span class="commit-hash">8b3d112</span><div class="commit-msg"><strong>Hana L.</strong> -- Added null check before passenger join</div><span class="commit-date">5h ago</span><span class="commit-score" style="color:var(--green)">74% &#9650;</span></div>
+        <div class="commit-row"><span class="commit-hash">c91e443</span><div class="commit-msg"><strong>Fatima A.</strong> -- New notebook: ancillary_revenue_os_sn.py</div><span class="commit-date">Yesterday</span><span class="commit-score" style="color:var(--amber)">52% --</span></div>
+        <div class="commit-row"><span class="commit-hash">7f3a290</span><div class="commit-msg"><strong>Ravi K.</strong> -- Refactored booking fact join to use departure date</div><span class="commit-date">Yesterday</span><span class="commit-score" style="color:var(--green)">81% &#9650;</span></div>
+        <div class="commit-row"><span class="commit-hash">2d8b551</span><div class="commit-msg"><strong>Priya M.</strong> -- Added schema validation for fact_v3</div><span class="commit-date">2 days ago</span><span class="commit-score" style="color:var(--green)">68% &#9650;</span></div>
+        <div class="commit-row"><span class="commit-hash">e5f1076</span><div class="commit-msg"><strong>Chen X.</strong> -- Updated DLT expectations for entity validation</div><span class="commit-date">2 days ago</span><span class="commit-score" style="color:var(--amber)">63% --</span></div>
+        <div class="commit-row"><span class="commit-hash">9a4c882</span><div class="commit-msg"><strong>Marco L.</strong> -- Fixed hardcoded date in booking_summary.py</div><span class="commit-date">3 days ago</span><span class="commit-score" style="color:var(--green)">77% &#9650;</span></div>
+        <div class="commit-row"><span class="commit-hash">3b7e119</span><div class="commit-msg"><strong>Anitha R.</strong> -- Updated FX lookup join date logic</div><span class="commit-date">4 days ago</span><span class="commit-score" style="color:var(--amber)">71% --</span></div>
+        <div class="commit-row"><span class="commit-hash">f2a9340</span><div class="commit-msg"><strong>Lars B.</strong> -- New pipeline: custom_date_spine_v2.py</div><span class="commit-date">5 days ago</span><span class="commit-score" style="color:var(--red)">49% &#9660;</span></div>
+        <div class="commit-row"><span class="commit-hash">6c3d827</span><div class="commit-msg"><strong>Mei C.</strong> -- Added try/except block to revenue rollup</div><span class="commit-date">6 days ago</span><span class="commit-score" style="color:var(--green)">70% &#9650;</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">Compliance trend -- last 8 weeks</div>
+        <div style="position:relative;height:200px"><canvas id="trendChart" role="img" aria-label="Compliance trend over 8 weeks showing slight decline from 68% to 62%">Team compliance trended from 68% down to 62% over 8 weeks.</canvas></div>
+      </div>
+    </div>
+
+    <!-- STANDARDS -->
+    <div id="page-standards" class="page">
+      <div class="page-hdr"><div><div class="page-title">Standard comparison</div><div class="page-sub">LHG coding standard &middot; 7 rules &middot; All engineers scored automatically</div></div></div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-hdr">LHG coding standard -- 7 rules</div>
+        <div class="rule-box"><div class="rule-num">1</div><div>UC table references must always be fully qualified (catalog.schema.table)</div></div>
+        <div class="rule-box"><div class="rule-num">2</div><div>Null validation must be performed before every join operation</div></div>
+        <div class="rule-box"><div class="rule-num">3</div><div>Entity filters must explicitly list all applicable codes -- no wildcard</div></div>
+        <div class="rule-box"><div class="rule-num">4</div><div>All notebooks must include try/except blocks with writes to the audit log table</div></div>
+        <div class="rule-box"><div class="rule-num">5</div><div>Schema validation must run at notebook start before any transformation</div></div>
+        <div class="rule-box"><div class="rule-num">6</div><div>Departure date must be used as the primary date key for booking pipelines</div></div>
+        <div class="rule-box"><div class="rule-num">7</div><div>EUR FX conversion must use lhg_prod.ref.fx_rates -- no hardcoded rates</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-hdr">Compliance by archetype</div>
+          <div style="position:relative;height:200px"><canvas id="archetypeChart" role="img" aria-label="Compliance by archetype: Veteran 68%, Chain master 80%, SQL native 56%, Junior 48%, Experimenter 63%">Veteran 68%, Chain 80%, SQL 56%, Junior 48%, Experimenter 63%.</canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">Rule compliance breakdown</div>
+          <div style="position:relative;height:200px"><canvas id="ruleChart" role="img" aria-label="Rule compliance: UC refs 78%, Null check 41%, Entity filter 69%, Error handling 34%, Schema val 52%, Date key 81%, FX rate 58%">UC 78%, Null 41%, Entity 69%, Error 34%, Schema 52%, Date 81%, FX 58%.</canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPLOAD / ANALYSE -->
+    <div id="page-upload" class="page">
+      <div class="page-hdr"><div><div class="page-title">Analyse notebook</div><div class="page-sub">Upload a real Databricks notebook for live AI-powered analysis using Claude Sonnet</div></div></div>
+      <div class="card">
+        <div class="card-hdr">API key required for live analysis</div>
+        <div class="api-input-row">
+          <input type="password" class="api-input" id="inline-api-key" placeholder="sk-ant-api03-..." oninput="checkApiKey()">
+          <button class="btn-sm btn-primary" onclick="saveApiKey()"><i class="ti ti-check"></i>&nbsp;Save</button>
+        </div>
+        <div id="api-key-status" style="font-size:12px;color:var(--muted)">Enter your Anthropic API key -- used this session only, never saved</div>
+      </div>
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+        <input type="file" id="file-input" accept=".ipynb,.py,.sql" style="display:none" onchange="handleFile(this.files[0])">
+        <i class="ti ti-upload" style="font-size:32px;color:var(--hint);display:block;margin-bottom:10px"></i>
+        <div style="font-size:15px;font-weight:600;margin-bottom:5px">Drop your Databricks notebook here</div>
+        <div style="font-size:13px;color:var(--muted)">Supports .ipynb, .py, .sql</div>
+        <div style="font-size:12px;color:var(--hint);margin-top:5px">Click to browse or drag and drop</div>
+      </div>
+      <div class="priv-box">
+        <i class="ti ti-shield-lock" style="font-size:16px;flex-shrink:0;margin-top:1px"></i>
+        <div><strong>Tokenisation active.</strong> Credentials, hostnames, table names and internal identifiers are replaced with tokens before analysis. Nothing sensitive is sent to the AI. Token map stays in your browser only.</div>
+      </div>
+      <div class="analysis-loading piq-loader" id="analysis-loading">
+        <div class="piq-orbit">
+          <div class="piq-orbit-ring1"></div>
+          <div class="piq-orbit-ring2"></div>
+          <div class="piq-orbit-dot"></div>
+          <div class="piq-orbit-core"><i class="ti ti-brain"></i></div>
+        </div>
+        <div class="piq-title" id="loading-msg">Analysing notebook</div>
+        <div class="piq-subtitle" id="loading-sub">Preparing tokenisation layer</div>
+        <div class="piq-stages">
+          <div class="piq-stage active" id="step-1">
+            <i class="ti ti-shield-lock"></i>
+            <span class="piq-stage-lbl">Tokenise</span>
+          </div>
+          <div class="piq-stage" id="step-2">
+            <i class="ti ti-code"></i>
+            <span class="piq-stage-lbl">Patterns</span>
+          </div>
+          <div class="piq-stage" id="step-3">
+            <i class="ti ti-list-check"></i>
+            <span class="piq-stage-lbl">Compliance</span>
+          </div>
+          <div class="piq-stage" id="step-4">
+            <i class="ti ti-fingerprint"></i>
+            <span class="piq-stage-lbl">Fingerprint</span>
+          </div>
+          <div class="piq-stage" id="step-5">
+            <i class="ti ti-file-text"></i>
+            <span class="piq-stage-lbl">Brief</span>
+          </div>
+        </div>
+        <div class="piq-track">
+          <div class="piq-track-bar"><div class="piq-track-fill" id="progress-fill" style="width:0%"></div></div>
+          <div class="piq-track-txt" id="progress-txt">Starting</div>
+        </div>
+        <div class="piq-token-strip" id="token-strip"></div>
+      </div>
+      <div class="analysis-result" id="analysis-result"></div>
+    </div>
+
+    <!-- WEBHOOK SETUP -->
+    <div id="page-webhook" class="page">
+      <div class="page-hdr">
+        <div><div class="page-title">Webhook setup</div><div class="page-sub">Every Bitbucket commit triggers automatic analysis -- zero change to the engineering workflow</div></div>
+        <button class="btn-sm btn-primary" id="demo-btn" onclick="runWebhookDemo()"><i class="ti ti-player-play"></i>&nbsp;Run live demo</button>
+      </div>
+
+      <!-- LIVE DEMO PANEL -->
+      <div class="card" style="margin-bottom:16px;border:1.5px solid var(--blue);background:#f8fbff">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--navy)">Live pipeline simulation</div>
+          <div id="demo-status" style="font-size:12px;color:var(--hint)">Press Run to start</div>
+        </div>
+
+        <!-- Animated flow -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;position:relative">
+          <div style="position:absolute;top:28px;left:calc(12.5% + 10px);right:calc(12.5% + 10px);height:2px;background:#e4e7ef;z-index:0">
+            <div id="flow-line" style="height:100%;width:0%;background:linear-gradient(to right,#378ADD,#1D9E75);transition:width .6s ease;border-radius:2px"></div>
+          </div>
+          <div class="flow-step" id="flow-1" style="text-align:center;position:relative;z-index:1">
+            <div class="flow-icon" style="width:56px;height:56px;border-radius:50%;border:2px solid #e4e7ef;background:white;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;transition:all .3s">
+              <i class="ti ti-git-commit" style="font-size:20px;color:#9aa0b0"></i>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:var(--muted)">1. Commit</div>
+            <div style="font-size:11px;color:var(--hint);margin-top:3px">Engineer pushes</div>
+            <div class="flow-badge" id="badge-1" style="display:none;margin-top:5px"></div>
+          </div>
+          <div class="flow-step" id="flow-2" style="text-align:center;position:relative;z-index:1">
+            <div class="flow-icon" style="width:56px;height:56px;border-radius:50%;border:2px solid #e4e7ef;background:white;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;transition:all .3s">
+              <i class="ti ti-webhook" style="font-size:20px;color:#9aa0b0"></i>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:var(--muted)">2. Webhook</div>
+            <div style="font-size:11px;color:var(--hint);margin-top:3px">Bitbucket fires</div>
+            <div class="flow-badge" id="badge-2" style="display:none;margin-top:5px"></div>
+          </div>
+          <div class="flow-step" id="flow-3" style="text-align:center;position:relative;z-index:1">
+            <div class="flow-icon" style="width:56px;height:56px;border-radius:50%;border:2px solid #e4e7ef;background:white;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;transition:all .3s">
+              <i class="ti ti-brain" style="font-size:20px;color:#9aa0b0"></i>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:var(--muted)">3. Analyse</div>
+            <div style="font-size:11px;color:var(--hint);margin-top:3px">Claude processes</div>
+            <div class="flow-badge" id="badge-3" style="display:none;margin-top:5px"></div>
+          </div>
+          <div class="flow-step" id="flow-4" style="text-align:center;position:relative;z-index:1">
+            <div class="flow-icon" style="width:56px;height:56px;border-radius:50%;border:2px solid #e4e7ef;background:white;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;transition:all .3s">
+              <i class="ti ti-layout-dashboard" style="font-size:20px;color:#9aa0b0"></i>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:var(--muted)">4. Dashboard</div>
+            <div style="font-size:11px;color:var(--hint);margin-top:3px">Auto-updates</div>
+            <div class="flow-badge" id="badge-4" style="display:none;margin-top:5px"></div>
+          </div>
+        </div>
+
+        <!-- Live log -->
+        <div style="background:#0d1117;border-radius:10px;padding:14px 16px;font-family:monospace;font-size:12px;min-height:120px;max-height:180px;overflow-y:auto" id="demo-log">
+          <div style="color:#484f58">-- Waiting for commit event --</div>
+        </div>
+      </div>
+
+      <!-- Live commit feed -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-hdr" style="display:flex;align-items:center;justify-content:space-between">
+          Live commit feed
+          <span id="live-dot" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--hint);font-weight:400">
+            <span style="width:7px;height:7px;border-radius:50%;background:#e4e7ef;display:inline-block"></span>
+            Idle
+          </span>
+        </div>
+        <div id="live-commits" style="min-height:60px">
+          <div style="font-size:13px;color:var(--hint);padding:8px 0">No commits yet -- press Run live demo to simulate</div>
+        </div>
+      </div>
+
+      <!-- Config card -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-hdr">Bitbucket webhook configuration</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Add to your repo under Settings > Webhooks > Add webhook:</div>
+          <div class="webhook-box">POST  https://pipelineiq.vercel.app/api/webhook/bitbucket
+Content-Type: application/json
+Events: Repository push</div>
+          <div style="display:flex;align-items:center;gap:7px;font-size:12px;margin-top:10px">
+            <span class="status-dot dot-amber"></span>
+            <span style="color:var(--muted)">Not yet configured &middot; <a href="#" style="color:var(--blue)">Docs</a></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">Alternative: Databricks REST API</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:10px">Connect directly to your Databricks workspace using a service principal token. PipelineIQ polls for changes on a daily schedule.</div>
+          <div style="display:flex;align-items:center;gap:7px;font-size:12px">
+            <span class="status-dot dot-amber"></span>
+            <span style="color:var(--muted)">Not yet configured</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API KEY PAGE -->
+    <div id="page-apikey" class="page">
+      <div class="page-hdr"><div><div class="page-title">API key</div><div class="page-sub">Required for live notebook analysis using Claude Sonnet</div></div></div>
+      <div class="card">
+        <div class="card-hdr">Anthropic API key</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Your API key is used for this session only and is never saved or stored anywhere. You will need to enter it again each time you open PipelineIQ.</div>
+        <div class="api-input-row">
+          <input type="password" class="api-input" id="main-api-key" placeholder="sk-ant-api03-...">
+          <button class="btn-sm btn-primary" onclick="saveMainApiKey()"><i class="ti ti-check"></i>&nbsp;Save key</button>
+          <button class="btn-sm" onclick="clearApiKey()"><i class="ti ti-trash"></i>&nbsp;Clear</button>
+        </div>
+        <div id="main-key-status" style="font-size:12px;color:var(--muted);margin-top:6px">Not set for this session</div>
+        <div class="divider"></div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7">Get your API key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue)">console.anthropic.com</a>. The live analysis feature uses claude-sonnet-4-6 with a max of 2000 tokens per notebook. Estimated cost per analysis: $0.003 to $0.01 depending on notebook size.</div>
+      </div>
+    </div>
+
+    <!-- ABOUT -->
+    <div id="page-about" class="page">
+      <div class="page-hdr"><div><div class="page-title">About PipelineIQ</div><div class="page-sub">AI-powered code intelligence for Databricks data engineering teams</div></div></div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-hdr">What PipelineIQ solves</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.8">When a data engineer leaves, they take years of implicit knowledge with them. Why the entity filter excludes certain codes. Which FX rate table to use and why. Why that join has a 2-hour delay built in.<br><br>PipelineIQ extracts that knowledge automatically from the code itself, before the engineer walks out the door.</div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">What it produces</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.8">
+            <strong style="font-weight:600;color:var(--text)">Style fingerprint</strong> -- how this engineer codes vs the team standard<br><br>
+            <strong style="font-weight:600;color:var(--text)">LHG knowledge map</strong> -- entity logic, date conventions, FX approach<br><br>
+            <strong style="font-weight:600;color:var(--text)">Risk register</strong> -- what is fragile, what only this person understands<br><br>
+            <strong style="font-weight:600;color:var(--text)">Handover brief</strong> -- clear language, 30 minutes to read
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">Privacy and tokenisation</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Before any notebook is analysed, a tokenisation layer runs entirely in your browser:</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="sbox"><div class="slbl">Before (in your browser)</div><div class="code-block">host="lhg-prod-db.internal"
+password="Lh@2024Prod!"
+table="lhg_prod.booking.fact_v3"</div></div>
+          <div class="sbox"><div class="slbl">After (sent to Claude)</div><div class="code-block">host="HOST_TOKEN_001"
+password="CRED_TOKEN_002"
+table="TABLE_TOKEN_003"</div></div>
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin-top:12px;line-height:1.7">The token map stays in your browser only. Claude sees the logic and structure -- never the actual credentials or internal identifiers.</div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">Built by</div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="width:46px;height:46px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:700">GP</div>
+          <div>
+            <div style="font-size:15px;font-weight:700">Ganeshbalan Pandy</div>
+            <div style="font-size:13px;color:var(--muted)">Digital Transformation Leader and AI Product Builder</div>
+            <div style="font-size:12px;color:var(--hint);margin-top:3px">Also built: Analytics IntelX -- natural language GA4 analytics agent</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const AT_COLORS={veteran:'#378ADD',chain:'#1D9E75',sql:'#BA7517',junior:'#888780',experimenter:'#7F77DD'};
+const AT_LABELS={veteran:'The Veteran',chain:'Chain master',sql:'SQL native',junior:'Junior engineer',experimenter:'The Experimenter'};
+const RISK_LEVELS={veteran:['high','high','high','medium','medium','medium','low','low','low','low'],chain:['high','medium','medium','medium','low','low','low','low','low','low'],sql:['medium','medium','medium','low','low','low','low','low','low','low'],junior:['medium','low','low','low','low','low','low','low','low','low'],experimenter:['high','high','medium','medium','medium','low','low','low','low','low']};
+const COMP_SCORES={veteran:[71,68,74,65,79,72,58,63,69,75],chain:[82,78,85,80,76,83,79,77,84,81],sql:[55,52,58,49,61,54,57,50,63,56],junior:[48,51,45,53,46,49,44,52,47,50],experimenter:[61,58,65,59,67,62,64,57,66,60]};
+const RULE_SCORES={veteran:[90,55,80,50,60,85,75],chain:[95,30,75,20,40,88,80],sql:[60,65,60,45,50,65,55],junior:[55,45,60,15,35,80,50],experimenter:[88,85,90,80,70,40,65]};
+const FIRST=['Anitha','Stefan','Priya','Lars','Chen','Marco','Lena','Ravi','Julia','Kai','Fatima','David','Mei','Thomas','Aisha','Henrik','Deepa','Sven','Zara','Felix','Nadia','Arjun','Elena','Tobias','Yuki','Ibrahim','Sophie','Raj','Marta','Erik','Leila','Florian','Preethi','Mikael','Amara','Jonas','Divya','Lukas','Hana','Max','Pooja','Anton','Sadia','Jan','Keerthana','Nico','Aditi','Simon','Kavya','Leo'];
+const LAST=['R.','W.','M.','B.','X.','L.','S.','K.','H.','P.','A.','N.','C.','V.','J.','O.','T.','F.','G.','D.','E.','I.','Q.','U.','Y.','Z.','AA.','BB.','CC.','DD.','EE.','FF.','GG.','HH.','II.','JJ.','KK.','LL.','MM.','NN.','OO.','PP.','QQ.','RR.','SS.','TT.','UU.','VV.','WW.','XX.'];
+const STYLE_DATA={veteran:{df:'Intermediate assignments with inline comments',null_h:'Defensive -- validates before every join',uc:'Fully qualified always (catalog.schema.table)',entity:'Explicit list, documents exclusion reasons',error:'try/except with partial audit log writes',date:'Departure date with booking date fallback',fx:'lhg_prod.ref.fx_rates with correct join date'},chain:{df:'Long method chains, minimal intermediate vars',null_h:'Minimal -- trusts upstream data quality',uc:'Fully qualified always',entity:'Explicit list, sometimes hardcoded values',error:'Rare -- relies on Databricks auto-retry',date:'Departure date, clean and consistent',fx:'lhg_prod.ref.fx_rates, no fallback'},sql:{df:'spark.sql() for most operations',null_h:'SQL CASE WHEN for null handling',uc:'Short names after USE statement',entity:'SQL WHERE clause, sometimes wildcard',error:'SQL TRY_CAST patterns only',date:'Mixed -- departure and booking date',fx:'Sometimes hardcoded rates in SQL blocks'},junior:{df:'Step by step, many intermediate variables',null_h:'Inconsistent -- sometimes missing entirely',uc:'Mix of qualified and short names',entity:'Explicit but sometimes incomplete lists',error:'Minimal or missing entirely',date:'Departure date -- follows standard correctly',fx:'Correct table but wrong join date logic'},experimenter:{df:'Delta Live Tables, autoloader, streaming',null_h:'Schema enforcement via DLT expectations',uc:'Fully qualified, uses catalogs creatively',entity:'Dynamic -- reads from config table',error:'Structured custom exception classes',date:'Event time watermarks, differs from standard',fx:'Custom FX model with lookback logic'}};
+const CODE_SAMPLES={veteran:`# Booking fact - LH only, exclude codeshares\n# Note: LX behaves differently for ancillary\n# DO NOT change FX logic - finance sign-off Oct 2023\ndf_bkg = spark.read.table("lhg_prod.booking.fact_v3")\ndf_lh  = df_bkg.filter(col("entity_cd") == "LH") \\\n               .filter(col("dep_dt") >= lit("2023-01-01"))\nif df_lh.filter(col("revenue_base").isNull()).count() > 0:\n    raise ValueError("Null revenue -- check upstream")`,chain:`df = (spark.read.table("lhg_prod.booking.fact_v3")\n    .filter(col("entity_cd").isin(["LH","LX","OS","SN"]))\n    .join(fx, on=["currency_cd","booking_dt"], how="left")\n    .withColumn("rev_eur", col("revenue") * col("fx_rate"))\n    .groupBy("month_key","entity_cd")\n    .agg(sum("rev_eur").alias("revenue_eur"),\n         countDistinct("pnr_id").alias("bookings")))`,sql:`spark.sql('USE lhg_prod.booking')\ndf = spark.sql(\`\n    SELECT b.pnr_id, b.dep_dt, b.entity_cd,\n           b.revenue * COALESCE(f.fx_rate, 1.0) AS rev_eur\n    FROM   fact_v3 b\n    LEFT JOIN lhg_prod.ref.fx_rates f\n           ON b.currency_cd = f.currency_cd\n    WHERE  b.entity_cd IN ('LH','LX','OS','SN')\n\`)`,junior:`df1 = spark.read.table("booking.fact_v3")\ndf2 = df1.filter(col("entity_cd") == "LH")\ndf3 = df2.filter(col("dep_dt") >= "2024-01-01")\ndf4 = df3.join(fx_df, "currency_cd")\ndf5 = df4.withColumn("rev_eur", col("revenue") * col("rate"))\ndf5.write.mode("overwrite").saveAsTable("output.booking_rev")`,experimenter:`@dlt.table(comment="LHG booking revenue - streaming")\n@dlt.expect_or_fail("valid_entity","entity_cd IN ('LH','LX','OS','SN')")\n@dlt.expect_or_drop("non_null_revenue","revenue IS NOT NULL")\ndef booking_revenue():\n    return (dlt.read_stream("booking_raw")\n        .withWatermark("event_time","2 hours")\n        .withColumn("rev_eur",\n            col("revenue") * get_fx_rate(col("currency_cd"), col("event_time"))))`};
+const BRIEF_TEXT={veteran:'a Veteran engineer with deep LHG institutional knowledge built over multiple years. Their code uses intermediate DataFrame assignments -- always read the comments before touching any logic. The FX handling has finance sign-off and must not be changed without approval from the Finance Analytics team.',chain:'a Chain master -- all transformations are written as long method chains. When debugging, add .show() calls between chain steps to isolate the issue. Do not assume the chain can be split without side effects.',sql:'a SQL native who uses spark.sql() for most operations. The USE statement at the top of each notebook sets the default schema -- removing it will break all table references silently. Business logic lives in the SQL WHERE clauses.',junior:'a Junior engineer who follows the standard closely but has gaps in error handling and null validation. Add try/except blocks and null checks before putting any notebook into ADF production pipelines. Always test with edge-case data.',experimenter:'an Experimenter who uses Delta Live Tables and structured streaming -- technologies no other team member currently uses. Read the Databricks DLT documentation before touching any pipeline. Their custom FX lookback model must be validated against lhg_prod.ref.fx_rates before any changes.'};
+
+let engineers=[];
+let currentFilter='all';
+let currentRisk='all';
+let selectedId=null;
+let apiKey='';
+
+
+// -- HIERARCHY DATA -----------------------------------------------------------
+const H_VS = 6;   // Value Streams
+const H_ART = 3;  // ARTs per VS
+const H_TEAM = 3; // Teams per ART
+const H_ENG = 6;  // Engineers per Team (approx 50 per VS)
+
+const VS_NAMES = ['Booking & Reservation','Loyalty & Miles','Ancillary Revenue','Digital Self-Service','Cargo & Freight','Data Platform'];
+const VS_COLORS = ['#378ADD','#1D9E75','#BA7517','#7F77DD','#E24B4A','#888780'];
+
+// Generate hierarchy data
+function buildHierarchy(){
+  const data = {
+    name: 'CoP Data Engineering',
+    totalEngineers: 0,
+    totalNotebooks: 0,
+    compliance: 0,
+    highRisk: 0,
+    vs: []
+  };
+
+  let engIdx = 0;
+  VS_NAMES.forEach((vsName, vi) => {
+    const vs = { id:'vs-'+vi, name:vsName, color:VS_COLORS[vi], compliance:0, engineers:[], arts:[] };
+    for(let ai=0; ai<H_ART; ai++){
+      const art = { id:'art-'+vi+'-'+ai, name:'ART '+(ai+1), vsId:'vs-'+vi, compliance:0, engineers:[], teams:[] };
+      for(let ti=0; ti<H_TEAM; ti++){
+        const team = { id:'team-'+vi+'-'+ai+'-'+ti, name:'Team '+(ti+1), artId:'art-'+vi+'-'+ai, vsId:'vs-'+vi, engineers:[] };
+        for(let ei=0; ei<H_ENG; ei++){
+          const archetypes=['veteran','chain','sql','junior','experimenter'];
+          const at = archetypes[(engIdx) % archetypes.length];
+          const scoreBase = {veteran:68,chain:80,sql:56,junior:48,experimenter:63};
+          const score = Math.max(30, Math.min(95, scoreBase[at] + Math.floor((Math.random()-0.5)*20)));
+          const riskLevels = ['high','medium','low'];
+          const risk = score < 50 ? 'high' : score < 65 ? 'medium' : 'low';
+          const fnames=['Anitha','Stefan','Priya','Lars','Chen','Marco','Lena','Ravi','Julia','Kai','Fatima','David','Mei','Thomas','Aisha','Henrik','Deepa','Sven','Zara','Felix','Nadia','Arjun','Elena','Tobias','Yuki','Ibrahim','Sophie','Raj','Marta','Erik','Leila','Florian','Preethi','Mikael','Amara','Jonas','Divya','Lukas','Hana','Max','Pooja','Anton','Sadia','Jan','Keerthana','Nico','Aditi','Simon','Kavya','Leo'];
+          const lnames=['R.','W.','M.','B.','X.','L.','S.','K.','H.','P.','A.','N.','C.','V.','J.','O.','T.','F.','G.','D.'];
+          const fidx = (engIdx*7+ei*3) % fnames.length;
+          const lidx = (engIdx+ei) % lnames.length;
+          const eng = {
+            id: 'h-eng-'+vi+'-'+ai+'-'+ti+'-'+ei,
+            name: fnames[fidx]+' '+lnames[lidx],
+            initials: fnames[fidx][0]+lnames[lidx][0],
+            archetype: at,
+            score, risk,
+            vsId:'vs-'+vi, artId:'art-'+vi+'-'+ai, teamId:'team-'+vi+'-'+ai+'-'+ti,
+            years: at==='veteran'?4+Math.floor(Math.random()*3):at==='junior'?1+Math.floor(Math.random()*2):2+Math.floor(Math.random()*4)
+          };
+          team.engineers.push(eng);
+          art.engineers.push(eng);
+          vs.engineers.push(eng);
+          engIdx++;
+        }
+        art.teams.push(team);
+      }
+      art.compliance = Math.round(art.engineers.reduce((s,e)=>s+e.score,0)/art.engineers.length);
+      vs.arts.push(art);
+    }
+    vs.compliance = Math.round(vs.engineers.reduce((s,e)=>s+e.score,0)/vs.engineers.length);
+    data.vs.push(vs);
+  });
+
+  data.totalEngineers = data.vs.reduce((s,vs)=>s+vs.engineers.length,0);
+  data.compliance = Math.round(data.vs.reduce((s,vs)=>s+vs.compliance,0)/data.vs.length);
+  data.highRisk = data.vs.reduce((s,vs)=>s+vs.engineers.filter(e=>e.risk==='high').length,0);
+  data.totalNotebooks = data.totalEngineers * 8;
+  return data;
+}
+
+let H = null;
+let currentVs = null;
+let currentArt = null;
+let currentTeam = null;
+
+function initHierarchy(){
+  H = buildHierarchy();
+  renderCop();
+}
+
+function scoreColor(s){ return s>=70?'var(--green)':s>=50?'var(--amber)':'var(--red)'; }
+function hScoreClass(s){ return s>=70?'s-hi':s>=50?'s-me':'s-lo'; }
+function riskBadge(r){ return r==='high'?'b-red':r==='medium'?'b-amber':'b-green'; }
+
+function metCard(num, numColor, label, trend){
+  return `<div class="met"><div class="met-num" style="color:${numColor}">${num}</div><div class="met-lbl">${label}</div>${trend?`<div class="met-trend" style="color:var(--muted)">${trend}</div>`:''}</div>`;
+}
+
+function renderCop(){
+  setBreadcrumb('cop');
+  ['vs','art','team'].forEach(v=>{ const el=document.getElementById('view-'+v); if(el) el.style.display='none'; });
+  const vw = document.getElementById('view-cop');
+  if(vw) vw.style.display='block';
+  const panel = document.getElementById('eng-panel-hier');
+  if(panel) panel.innerHTML='';
+
+  const highRisk = H.vs.reduce((s,vs)=>s+vs.engineers.filter(e=>e.risk==='high').length,0);
+  const medRisk = H.vs.reduce((s,vs)=>s+vs.engineers.filter(e=>e.risk==='medium').length,0);
+  const lowRisk = H.vs.reduce((s,vs)=>s+vs.engineers.filter(e=>e.risk==='low').length,0);
+  const avgComp = H.compliance;
+  const topGap = 'Error handling (34%)';
+
+  vw.innerHTML = `
+    <div style="margin-bottom:24px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
+        <div>
+          <div style="font-size:20px;font-weight:700;color:var(--navy)">CoP Data Engineering</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">Community of Practice &middot; ${H.vs.length} Value Streams &middot; ${H.totalEngineers} engineers</div>
+        </div>
+        <button class="btn-sm" onclick="alert('Sync triggers fresh analysis across all Value Streams.')"><i class="ti ti-refresh"></i>&nbsp;Sync</button>
+      </div>
+    </div>
+
+    <!-- KPI strip -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
+      <div style="background:white;border:1px solid var(--border);border-radius:14px;padding:16px 20px;border-left:4px solid ${scoreColor(avgComp)}">
+        <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Team compliance</div>
+        <div style="font-size:32px;font-weight:700;color:${scoreColor(avgComp)};line-height:1">${avgComp}%</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:5px">Across ${H.vs.length} value streams</div>
+      </div>
+      <div style="background:white;border:1px solid var(--border);border-radius:14px;padding:16px 20px;border-left:4px solid #E24B4A">
+        <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Pipeline risk</div>
+        <div style="font-size:32px;font-weight:700;color:#E24B4A;line-height:1">${highRisk}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:5px">Critical pipelines</div>
+      </div>
+      <div style="background:white;border:1px solid var(--border);border-radius:14px;padding:16px 20px;border-left:4px solid var(--blue)">
+        <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Notebooks tracked</div>
+        <div style="font-size:32px;font-weight:700;color:var(--blue);line-height:1">${H.totalNotebooks.toLocaleString()}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:5px">Auto-analysed</div>
+      </div>
+      <div style="background:white;border:1px solid var(--border);border-radius:14px;padding:16px 20px;border-left:4px solid #BA7517">
+        <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Top gap</div>
+        <div style="font-size:14px;font-weight:700;color:#BA7517;line-height:1.3;margin-top:4px">${topGap}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:5px">Most common issue</div>
+      </div>
+    </div>
+
+    <!-- VS grid -- clean cards -->
+    <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Value Streams &mdash; select to explore</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px">
+      ${H.vs.map((vs,i)=>{
+        const crit = vs.engineers.filter(e=>e.risk==='high').length;
+        const barW = vs.compliance;
+        const barColor = vs.compliance>=70?'#1D9E75':vs.compliance>=50?'#BA7517':'#E24B4A';
+        return `
+        <div onclick="drillToVs('${vs.id}')" style="background:white;border:1px solid var(--border);border-radius:14px;padding:16px 18px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden" onmouseover="this.style.borderColor='${vs.color}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 20px rgba(0,0,0,.08)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='';this.style.boxShadow=''">
+          <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:${vs.color};border-radius:14px 0 0 14px"></div>
+          <div style="margin-left:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:10px;font-weight:700;color:${vs.color};text-transform:uppercase;letter-spacing:.05em">VS ${i+1}</div>
+              <div style="font-size:18px;font-weight:700;color:${barColor}">${vs.compliance}%</div>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;line-height:1.3">${vs.name}</div>
+            <div style="height:4px;background:#f1f3f4;border-radius:2px;overflow:hidden;margin-bottom:10px">
+              <div style="height:100%;width:${barW}%;background:${barColor};border-radius:2px;transition:width .6s ease"></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted)">
+              <span>${vs.engineers.length} engineers &middot; ${vs.arts.length} ARTs</span>
+              ${crit>0?`<span style="color:#E24B4A;font-weight:600">${crit} critical</span>`:'<span style="color:var(--green);font-weight:600">All clear</span>'}
+            </div>
+          </div>
+        </div>`;}).join('')}
+    </div>
+
+    <!-- Compact compliance chart -->
+    <div style="background:white;border:1px solid var(--border);border-radius:14px;padding:16px 20px">
+      <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">Compliance by value stream</div>
+      <div style="position:relative;height:160px"><canvas id="copChart" role="img" aria-label="Compliance by value stream">Bar chart showing compliance scores across 6 value streams.</canvas></div>
+    </div>`;
+
+  setTimeout(()=>{
+    const ctx=document.getElementById('copChart');
+    if(ctx) new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:H.vs.map((vs,i)=>'VS '+(i+1)),
+        datasets:[{
+          data:H.vs.map(vs=>vs.compliance),
+          backgroundColor:H.vs.map(vs=>vs.compliance>=70?'#1D9E75':vs.compliance>=50?'#BA7517':'#E24B4A'),
+          borderRadius:6,
+          borderWidth:0
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'Compliance: '+ctx.raw+'%'}}},
+        scales:{
+          y:{beginAtZero:true,max:100,grid:{color:'rgba(0,0,0,0.03)'},ticks:{font:{size:11},callback:v=>v+'%'}},
+          x:{grid:{display:false},ticks:{font:{size:11}}}
+        }
+      }
+    });
+  },120);
+}
+function drillToVs(vsId){
+  currentVs = H.vs.find(vs=>vs.id===vsId);
+  currentArt = null; currentTeam = null;
+  setBreadcrumb('vs');
+  ['cop','art','team'].forEach(v=>document.getElementById('view-'+v).style.display='none');
+  document.getElementById('view-vs').style.display='block';
+  document.getElementById('eng-panel-hier').innerHTML='';
+
+  document.getElementById('view-vs').innerHTML = `
+    <div class="page-hdr">
+      <div><div class="page-title">${currentVs.name}</div><div class="page-sub">Value Stream &middot; ${currentVs.arts.length} ARTs &middot; ${currentVs.engineers.length} engineers</div></div>
+    </div>
+    <div class="metrics">
+      ${metCard(currentVs.compliance+'%', scoreColor(currentVs.compliance), 'VS compliance', '')}
+      ${metCard(currentVs.engineers.length, 'var(--text)', 'Engineers', '')}
+      ${metCard(currentVs.engineers.filter(e=>e.risk==='high').length, 'var(--red)', 'Departure critical', '')}
+      ${metCard(currentVs.arts.length, 'var(--blue)', 'ARTs', '')}
+    </div>
+    <div class="card-hdr" style="margin-bottom:12px">ARTs &mdash; click to drill in</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+      ${currentVs.arts.map((art,i)=>`
+        <div onclick="drillToArt('${art.id}')" style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;cursor:pointer;transition:all .15s;box-shadow:var(--shadow);border-top:3px solid ${currentVs.color}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="width:36px;height:36px;border-radius:9px;background:${currentVs.color}18;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${currentVs.color}">A${i+1}</div>
+            <div style="font-size:22px;font-weight:700;color:${scoreColor(art.compliance)}">${art.compliance}%</div>
+          </div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">${art.name}</div>
+          <div style="display:flex;gap:12px;font-size:12px;color:var(--muted)">
+            <span><i class="ti ti-users" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>${art.engineers.length} engineers</span>
+            <span><i class="ti ti-alert-triangle" style="font-size:12px;vertical-align:-1px;margin-right:3px;color:var(--red)"></i>${art.engineers.filter(e=>e.risk==='high').length} departure critical</span>
+          </div>
+          <div style="margin-top:10px;height:5px;background:#f1f3f4;border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${art.compliance}%;background:${scoreColor(art.compliance)};border-radius:3px"></div>
+          </div>
+          <div style="font-size:11px;color:var(--hint);margin-top:6px;display:flex;justify-content:space-between">
+            <span>${art.teams.length} Teams</span>
+            <span style="color:${currentVs.color};font-weight:600">View &rarr;</span>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function drillToArt(artId){
+  currentArt = currentVs.arts.find(a=>a.id===artId);
+  currentTeam = null;
+  setBreadcrumb('art');
+  ['cop','vs','team'].forEach(v=>document.getElementById('view-'+v).style.display='none');
+  document.getElementById('view-art').style.display='block';
+  document.getElementById('eng-panel-hier').innerHTML='';
+
+  document.getElementById('view-art').innerHTML = `
+    <div class="page-hdr">
+      <div><div class="page-title">${currentVs.name} &mdash; ${currentArt.name}</div><div class="page-sub">${currentArt.teams.length} Teams &middot; ${currentArt.engineers.length} engineers</div></div>
+    </div>
+    <div class="metrics">
+      ${metCard(currentArt.compliance+'%', scoreColor(currentArt.compliance), 'ART compliance', '')}
+      ${metCard(currentArt.engineers.length, 'var(--text)', 'Engineers', '')}
+      ${metCard(currentArt.engineers.filter(e=>e.risk==='high').length, 'var(--red)', 'Departure critical', '')}
+      ${metCard(currentArt.teams.length, 'var(--blue)', 'Teams', '')}
+    </div>
+    <div class="card-hdr" style="margin-bottom:12px">Teams &mdash; click to see engineers</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+      ${currentArt.teams.map((team,i)=>{
+        const tc = Math.round(team.engineers.reduce((s,e)=>s+e.score,0)/team.engineers.length);
+        return `
+        <div onclick="drillToTeam('${team.id}')" style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;cursor:pointer;transition:all .15s;box-shadow:var(--shadow);border-top:3px solid ${currentVs.color}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="width:36px;height:36px;border-radius:9px;background:${currentVs.color}18;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${currentVs.color}">T${i+1}</div>
+            <div style="font-size:22px;font-weight:700;color:${scoreColor(tc)}">${tc}%</div>
+          </div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">${team.name}</div>
+          <div style="display:flex;gap:12px;font-size:12px;color:var(--muted)">
+            <span><i class="ti ti-users" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>${team.engineers.length} engineers</span>
+            <span><i class="ti ti-alert-triangle" style="font-size:12px;vertical-align:-1px;margin-right:3px;color:var(--red)"></i>${team.engineers.filter(e=>e.risk==='high').length} departure critical</span>
+          </div>
+          <div style="margin-top:10px;height:5px;background:#f1f3f4;border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${tc}%;background:${scoreColor(tc)};border-radius:3px"></div>
+          </div>
+          <div style="font-size:11px;color:var(--hint);margin-top:6px;display:flex;justify-content:space-between">
+            <span>${team.engineers.length} engineers</span>
+            <span style="color:${currentVs.color};font-weight:600">View &rarr;</span>
+          </div>
+        </div>`;}).join('')}
+    </div>`;
+}
+
+function drillToTeam(teamId){
+  currentTeam = currentArt.teams.find(t=>t.id===teamId);
+  setBreadcrumb('team');
+  ['cop','vs','art'].forEach(v=>document.getElementById('view-'+v).style.display='none');
+  document.getElementById('view-team').style.display='block';
+  document.getElementById('eng-panel-hier').innerHTML='';
+
+  const tc = Math.round(currentTeam.engineers.reduce((s,e)=>s+e.score,0)/currentTeam.engineers.length);
+
+  document.getElementById('view-team').innerHTML = `
+    <div class="page-hdr">
+      <div><div class="page-title">${currentVs.name} &mdash; ${currentArt.name} &mdash; ${currentTeam.name}</div><div class="page-sub">${currentTeam.engineers.length} engineers &middot; ${tc}% compliance</div></div>
+    </div>
+    <div class="metrics">
+      <div class="met" style="cursor:pointer" onclick="showMetricDetail('compliance','','')">
+        <div class="met-num" style="color:${scoreColor(tc)}">${tc}%</div>
+        <div class="met-lbl">Team compliance</div>
+        <div class="met-trend" style="color:var(--blue);font-size:10px">Click to see breakdown</div>
+      </div>
+      <div class="met"><div class="met-num">${currentTeam.engineers.length}</div><div class="met-lbl">Engineers</div></div>
+      <div class="met" style="cursor:pointer" onclick="showMetricDetail('risktype','','')">
+        <div class="met-num" style="color:var(--red)">${currentTeam.engineers.filter(e=>e.risk==='high').length}</div>
+        <div class="met-lbl">Pipelines at risk</div>
+        <div class="met-trend" style="color:var(--blue);font-size:10px">Click to see risk types</div>
+      </div>
+      <div class="met" style="cursor:pointer" onclick="showMetricDetail('impact','','')">
+        <div class="met-num" style="color:var(--green)">${currentTeam.engineers.filter(e=>e.risk==='low').length}</div>
+        <div class="met-lbl">Low impact</div>
+        <div class="met-trend" style="color:var(--blue);font-size:10px">Click for impact definitions</div>
+      </div>
+    </div>
+    <div class="card-hdr" style="margin-bottom:12px">Engineers &mdash; click for full profile and handover brief</div>
+    <div class="eng-grid">
+      ${currentTeam.engineers.map(e=>`
+        <div class="eng-card" onclick="selectHierEng('${e.id}')">
+          <div class="eng-av" style="background:${AT_COLORS[e.archetype]}20;color:${AT_COLORS[e.archetype]}">${e.initials}</div>
+          <div class="eng-name">${e.name}</div>
+          <div class="eng-type">${AT_LABELS[e.archetype]}</div>
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid #f4f6fb">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <span class="spill ${hScoreClass(e.score)}">${e.score}%</span>
+              <span style="font-size:9px;color:${PIPELINE_RISKS[e.archetype]?PIPELINE_RISKS[e.archetype].daysColor:'#888'};font-weight:600">${PIPELINE_RISKS[e.archetype]?PIPELINE_RISKS[e.archetype].days:'--'}</span>
+            </div>
+            <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PIPELINE_RISKS[e.archetype]?PIPELINE_RISKS[e.archetype].type:'--'}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function selectHierEng(engId){
+  // Find engineer across all teams
+  let eng = null;
+  H.vs.forEach(vs=>vs.arts.forEach(art=>art.teams.forEach(team=>{
+    const found = team.engineers.find(e=>e.id===engId);
+    if(found) eng = found;
+  })));
+  if(!eng) return;
+
+  const st = STYLE_DATA[eng.archetype];
+  const rs = RULE_SCORES[eng.archetype];
+  const rules=['UC references','Null validation','Entity filters','Error handling','Schema validation','Date key','FX rate source'];
+
+  const panel = document.getElementById('eng-panel-hier');
+  panel.innerHTML = `
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-hdr">
+        <div style="display:flex;align-items:center;gap:13px">
+          <div style="width:44px;height:44px;border-radius:50%;background:${AT_COLORS[eng.archetype]}20;color:${AT_COLORS[eng.archetype]};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">${eng.initials}</div>
+          <div><div class="panel-name">${eng.name}</div><div class="panel-meta">${AT_LABELS[eng.archetype]} &middot; ${eng.years} years &middot; Compliance ${eng.score}%</div>
+              <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+                <span onclick="showMetricDetail('risktype',eng.archetype,eng.name)" style="font-size:11px;padding:3px 10px;border-radius:20px;cursor:pointer;font-weight:600;background:${PIPELINE_RISKS[eng.archetype]?PIPELINE_RISKS[eng.archetype].impactBg:'#f1f3f4'};color:${PIPELINE_RISKS[eng.archetype]?PIPELINE_RISKS[eng.archetype].impactColor:'#888'}"><i class="ti ti-alert-circle" style="font-size:11px;vertical-align:-1px;margin-right:3px"></i>${PIPELINE_RISKS[eng.archetype]?PIPELINE_RISKS[eng.archetype].type:'--'}</span>
+                <span onclick="showMetricDetail('impact',eng.archetype,eng.name)" style="font-size:11px;padding:3px 10px;border-radius:20px;cursor:pointer;font-weight:600;background:#f8f9fc;color:var(--muted);border:1px solid var(--border)"><i class="ti ti-clock" style="font-size:11px;vertical-align:-1px;margin-right:3px"></i>${PIPELINE_RISKS[eng.archetype]?PIPELINE_RISKS[eng.archetype].days:'--'} recovery</span>
+              </div></div>
+        </div>
+        <div class="act-row">
+          <button class="btn-sm" onclick="window.print()"><i class="ti ti-printer"></i>&nbsp;Print</button>
+          <button class="btn-sm btn-primary" onclick="downloadHierBrief('${eng.id}')"><i class="ti ti-download"></i>&nbsp;Download</button>
+        </div>
+      </div>
+      <div class="sec-h">Style fingerprint</div>
+      <div class="style-grid">
+        <div class="sbox"><div class="slbl">DataFrame style</div><div class="sval">${st.df}</div></div>
+        <div class="sbox"><div class="slbl">Null handling</div><div class="sval">${st.null_h}</div></div>
+        <div class="sbox"><div class="slbl">UC table references</div><div class="sval">${st.uc}</div></div>
+        <div class="sbox"><div class="slbl">Entity filter</div><div class="sval">${st.entity}</div></div>
+        <div class="sbox"><div class="slbl">Error handling</div><div class="sval">${st.error}</div></div>
+        <div class="sbox"><div class="slbl">FX rate approach</div><div class="sval">${st.fx}</div></div>
+      </div>
+      <div class="sec-h">Standard compliance</div>
+      ${rules.map((r,i)=>`<div class="comp-row"><div class="comp-rule">${r}</div><div class="comp-bw"><div class="comp-bf" style="width:${rs[i]}%;background:${rs[i]>=70?'#1D9E75':rs[i]>=50?'#BA7517':'#E24B4A'}"></div></div><div class="comp-pct">${rs[i]}%</div></div>`).join('')}
+      <div class="sec-h">Handover brief</div>
+      <div class="brief-box">${eng.name.split(' ')[0]} is ${BRIEF_TEXT[eng.archetype]}<br><br>Key LHG knowledge: ${st.entity.toLowerCase()}. Date logic: ${st.date.toLowerCase()}. FX: ${st.fx.toLowerCase()}.<br><br><strong>Estimated onboarding time with this brief: 2-3 days. Without: 4-6 weeks.</strong></div>
+    </div>`;
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function downloadHierBrief(engId){
+  let eng = null;
+  H.vs.forEach(vs=>vs.arts.forEach(art=>art.teams.forEach(team=>{
+    const found = team.engineers.find(e=>e.id===engId);
+    if(found) eng = found;
+  })));
+  if(!eng) return;
+  const st = STYLE_DATA[eng.archetype];
+  const date = new Date().toLocaleDateString('en-GB');
+  const content = `PIPELINEIQ HANDOVER BRIEF
+Generated: ${date}
+
+Engineer: ${eng.name}
+Archetype: ${AT_LABELS[eng.archetype]}
+Years on team: ${eng.years}
+Compliance score: ${eng.score}%
+Risk level: ${eng.risk}
+
+HANDOVER BRIEF
+${eng.name.split(' ')[0]} is ${BRIEF_TEXT[eng.archetype]}
+
+---
+Generated by PipelineIQ V2 -- by Ganeshbalan Pandy`;
+  const blob = new Blob([content],{type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'PipelineIQ_Brief_'+eng.name.replace(' ','_')+'.txt';
+  a.click();
+}
+
+function drillTo(level){
+  if(level==='cop') renderCop();
+  else if(level==='vs' && currentVs) drillToVs(currentVs.id);
+  else if(level==='art' && currentArt) drillToArt(currentArt.id);
+}
+
+function setBreadcrumb(level){
+  // Reset all
+  ['vs','art','team'].forEach(l=>{
+    document.getElementById('bc-'+l).style.display='none';
+    document.getElementById('bc-'+l+'-sep').style.display='none';
+  });
+  if(level==='vs' && currentVs){
+    document.getElementById('bc-vs-sep').style.display='inline';
+    document.getElementById('bc-vs').style.display='inline';
+    document.getElementById('bc-vs').textContent = currentVs.name;
+  }
+  if(level==='art' && currentArt){
+    document.getElementById('bc-vs-sep').style.display='inline';
+    document.getElementById('bc-vs').style.display='inline';
+    document.getElementById('bc-vs').textContent = currentVs.name;
+    document.getElementById('bc-art-sep').style.display='inline';
+    document.getElementById('bc-art').style.display='inline';
+    document.getElementById('bc-art').textContent = currentArt.name;
+  }
+  if(level==='team' && currentTeam){
+    document.getElementById('bc-vs-sep').style.display='inline';
+    document.getElementById('bc-vs').style.display='inline';
+    document.getElementById('bc-vs').textContent = currentVs.name;
+    document.getElementById('bc-art-sep').style.display='inline';
+    document.getElementById('bc-art').style.display='inline';
+    document.getElementById('bc-art').textContent = currentArt.name;
+    document.getElementById('bc-team-sep').style.display='inline';
+    document.getElementById('bc-team').style.display='inline';
+    document.getElementById('bc-team').textContent = currentTeam.name;
+  }
+}
+
+
+// -- PIPELINE RISK FRAMEWORK --------------------------------------------------
+// Risk is about pipelines and systems, not individual people
+
+const PIPELINE_RISKS = {
+  veteran: {
+    type: 'Pipeline knowledge',
+    typeDesc: 'Critical business logic embedded in notebooks without external documentation',
+    impact: 'Critical',
+    days: '30+ days',
+    daysColor: '#c5221f',
+    impactBg: '#fce8e6',
+    impactColor: '#c5221f',
+    pipelines: [
+      {
+        name: 'booking_revenue_lh_monthly.py',
+        riskType: 'Pipeline knowledge',
+        impact: 'Critical (30+ days)',
+        reason: 'FX conversion logic has Finance Analytics sign-off from Oct 2023. Constraints are embedded in code comments only. Any schema change to lhg_prod.ref.fx_rates would require this knowledge to interpret correctly.'
+      },
+      {
+        name: 'entity_filter_rules.py',
+        riskType: 'Pipeline knowledge',
+        impact: 'High (15-30 days)',
+        reason: 'Entity exclusion rules for LX ancillary revenue contain hardcoded business exceptions. The reasoning for each exclusion exists only in the engineer\'s understanding of historical decisions made in 2022-2023.'
+      },
+      {
+        name: 'booking_fact_v3_transform.py',
+        riskType: 'Compliance gap',
+        impact: 'Medium (7-14 days)',
+        reason: 'Schema validation is present but try/except blocks do not write to the audit log table. Failures in ADF-triggered runs would not be traceable without the audit trail.'
+      }
+    ]
+  },
+  chain: {
+    type: 'Compliance gap',
+    typeDesc: 'Code structure creates debugging and maintenance complexity for other engineers',
+    impact: 'High',
+    days: '15-30 days',
+    daysColor: '#c2410c',
+    impactBg: '#fff7ed',
+    impactColor: '#c2410c',
+    pipelines: [
+      {
+        name: 'channel_performance_all_entities.py',
+        riskType: 'Compliance gap',
+        impact: 'High (15-30 days)',
+        reason: 'All transformations in a single 15-step method chain. No null validation before joins. An upstream schema change would produce silent incorrect results with no error message.'
+      },
+      {
+        name: 'revenue_attribution_pipeline.py',
+        riskType: 'Compliance gap',
+        impact: 'Medium (7-14 days)',
+        reason: 'Long chain structure is performant but difficult to step through for debugging. Engineers unfamiliar with this pattern will need additional time to trace data lineage.'
+      }
+    ]
+  },
+  sql: {
+    type: 'Pipeline knowledge',
+    typeDesc: 'Hidden schema dependencies that are not visible without deep understanding of the codebase',
+    impact: 'Medium',
+    days: '7-14 days',
+    daysColor: '#854d0e',
+    impactBg: '#fefce8',
+    impactColor: '#854d0e',
+    pipelines: [
+      {
+        name: 'ancillary_revenue_summary.py',
+        riskType: 'Pipeline knowledge',
+        impact: 'Medium (7-14 days)',
+        reason: 'USE statement sets the default schema for all SQL. Removing or changing this line silently breaks all downstream table references. This dependency is not obvious to engineers from a PySpark background.'
+      },
+      {
+        name: 'loyalty_segment_pipeline.py',
+        riskType: 'Compliance gap',
+        impact: 'Medium (7-14 days)',
+        reason: 'FX rates sometimes sourced from hardcoded SQL values rather than lhg_prod.ref.fx_rates. Inconsistency between pipelines may cause reconciliation discrepancies in Finance reporting.'
+      }
+    ]
+  },
+  junior: {
+    type: 'Compliance gap',
+    typeDesc: 'Code quality gaps that could produce silent data failures in production',
+    impact: 'Medium',
+    days: '7-14 days',
+    daysColor: '#854d0e',
+    impactBg: '#fefce8',
+    impactColor: '#854d0e',
+    pipelines: [
+      {
+        name: 'loyalty_miles_summary.py',
+        riskType: 'Compliance gap',
+        impact: 'Medium (7-14 days)',
+        reason: 'Join on pnr_id has no upstream null validation. If loyalty source introduces null PNR records, the join will silently expand row count producing inflated miles totals in Finance reporting.'
+      },
+      {
+        name: 'passenger_segment_rollup.py',
+        riskType: 'Compliance gap',
+        impact: 'Low (1-3 days)',
+        reason: 'FX join uses report_date instead of booking_dt. Small EUR variance acceptable for loyalty reports but would fail Finance reconciliation if applied to revenue reporting pipelines.'
+      }
+    ]
+  },
+  experimenter: {
+    type: 'Technology dependency',
+    typeDesc: 'Specialised technology with no team backup creates a single point of operational failure',
+    impact: 'Critical',
+    days: '30+ days',
+    daysColor: '#c5221f',
+    impactBg: '#fce8e6',
+    impactColor: '#c5221f',
+    pipelines: [
+      {
+        name: 'cargo_revenue_streaming.py',
+        riskType: 'Technology dependency',
+        impact: 'Critical (30+ days)',
+        reason: 'Delta Live Tables with structured streaming and custom watermarks. No other engineer on the team has DLT operational experience. A pipeline failure would require external Databricks expertise to diagnose and resolve.'
+      },
+      {
+        name: 'fx_lookback_model.py',
+        riskType: 'Technology dependency',
+        impact: 'Critical (30+ days)',
+        reason: 'Custom 30-day FX lookback model built for late-arriving cargo bookings. Validated by Finance but not in the team standard. The model logic is non-trivial and not documented outside the code.'
+      },
+      {
+        name: 'event_stream_aggregator.py',
+        riskType: 'Domain coverage',
+        impact: 'High (15-30 days)',
+        reason: 'Event time watermarks differ from the team departure date standard. Downstream Tableau extracts joining on dep_dt will produce incorrect results if this pipeline is modified without understanding the watermark mapping.'
+      }
+    ]
+  }
+};
+
+const IMPACT_DEFS = [
+  { level:'Critical', days:'30+ days', color:'#c5221f', bg:'#fce8e6', desc:'Business logic cannot be replicated without significant investigation. External expertise or extended knowledge transfer sessions required.' },
+  { level:'High',     days:'15-30 days', color:'#c2410c', bg:'#fff7ed', desc:'Requires deep code review and stakeholder interviews. Handover brief alone is not sufficient -- at least 2-3 knowledge transfer sessions needed.' },
+  { level:'Medium',   days:'7-14 days', color:'#854d0e', bg:'#fefce8', desc:'Handover brief is sufficient with one knowledge transfer session. Code is readable but has gaps that need explaining.' },
+  { level:'Low',      days:'1-3 days', color:'#137333', bg:'#e6f4ea', desc:'Code follows the team standard, is well structured and can be handed over with the PipelineIQ brief alone. No additional sessions required.' },
+];
+
+const RISKTYPE_DEFS = [
+  { type:'Pipeline knowledge', icon:'ti-brain', color:'#c5221f', desc:'Critical business logic, constraints or decisions are embedded in notebooks without external documentation. Only the pipeline owner can interpret them correctly.' },
+  { type:'Technology dependency', icon:'ti-cpu', color:'#7F77DD', desc:'A specialised technology, framework or custom model is used that no other team member currently operates. Creates a single point of operational failure.' },
+  { type:'Compliance gap', icon:'ti-shield-x', color:'#BA7517', desc:'Code quality issues that violate team standards. May produce silent data failures, untraceable errors or reconciliation discrepancies if the pipeline owner changes.' },
+  { type:'Domain coverage', icon:'ti-map', color:'#378ADD', desc:'Insufficient team coverage for a business domain or pipeline area. If the primary owner is unavailable, no one else has the context to operate or debug these pipelines.' },
+];
+
+
+function buildImpactContent(){
+  return IMPACT_DEFS.map(d=>
+    '<div style="background:'+d.bg+';border-radius:10px;padding:14px 16px;margin-bottom:10px;border-left:4px solid '+d.color+'">' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">' +
+    '<span style="font-size:13px;font-weight:700;color:'+d.color+'">'+d.level+'</span>' +
+    '<span style="font-size:12px;font-weight:600;color:'+d.color+';background:white;padding:2px 8px;border-radius:20px">'+d.days+'</span>' +
+    '</div><div style="font-size:13px;color:#555;line-height:1.65">'+d.desc+'</div></div>'
+  ).join('');
+}
+
+function buildRiskTypeContent(){
+  return RISKTYPE_DEFS.map(d=>
+    '<div style="background:white;border:1px solid #e4e7ef;border-radius:10px;padding:14px 16px;margin-bottom:10px;border-left:4px solid '+d.color+'">' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">' +
+    '<i class="ti '+d.icon+'" style="font-size:17px;color:'+d.color+'"></i>' +
+    '<span style="font-size:13px;font-weight:700;color:'+d.color+'">'+d.type+'</span>' +
+    '</div><div style="font-size:13px;color:#555;line-height:1.65">'+d.desc+'</div></div>'
+  ).join('');
+}
+
+function buildComplianceContent(){
+  const rules = [
+    {rule:'UC table references', pct:78, color:'#1D9E75'},
+    {rule:'Null validation before joins', pct:41, color:'#E24B4A'},
+    {rule:'Explicit entity filter', pct:69, color:'#BA7517'},
+    {rule:'try/except with audit log', pct:34, color:'#E24B4A'},
+    {rule:'Schema validation at start', pct:52, color:'#BA7517'},
+    {rule:'Departure date as primary key', pct:81, color:'#1D9E75'},
+    {rule:'EUR FX from lhg_prod.ref.fx_rates', pct:58, color:'#BA7517'},
+  ];
+  return '<div style="font-size:13px;color:#555;line-height:1.7;margin-bottom:16px">The compliance score measures how closely a pipeline follows the 7 LHG coding standards. Calculated automatically on every notebook commit.</div>' +
+    rules.map(r=>
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">' +
+      '<div style="font-size:13px;flex:1">'+r.rule+'</div>' +
+      '<div style="width:80px;height:6px;background:#f1f3f4;border-radius:3px;overflow:hidden;flex-shrink:0">' +
+      '<div style="height:100%;width:'+r.pct+'%;background:'+r.color+';border-radius:3px"></div></div>' +
+      '<div style="font-size:12px;color:#5f6368;min-width:28px;text-align:right">'+r.pct+'%</div></div>'
+    ).join('');
+}
+
+function showMetricDetail(type, archetype, engName){
+  const risk = PIPELINE_RISKS[archetype];
+  if(!risk){
+    if(type==='impact') showModal('Impact level definitions', buildImpactContent());
+    else if(type==='risktype') showModal('Risk type definitions', buildRiskTypeContent());
+    else if(type==='compliance') showModal('Compliance score explained', buildComplianceContent());
+    return;
+  }
+  if(type === 'risk'){
+    title = 'Pipeline risk breakdown';
+    content = `
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Risk type</div>
+        <div style="background:${risk.impactBg};border-radius:10px;padding:14px 16px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <i class="ti ti-alert-circle" style="font-size:16px;color:${risk.impactColor}"></i>
+            <span style="font-size:14px;font-weight:700;color:${risk.impactColor}">${risk.type}</span>
+          </div>
+          <div style="font-size:13px;color:#555;line-height:1.65">${risk.typeDesc}</div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Impact estimate</div>
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#f8f9fc;border-radius:10px;margin-bottom:16px">
+          <div style="text-align:center;padding-right:12px;border-right:1px solid var(--border)">
+            <div style="font-size:22px;font-weight:700;color:${risk.daysColor}">${risk.days}</div>
+            <div style="font-size:11px;color:var(--hint)">Recovery time</div>
+          </div>
+          <div style="font-size:13px;color:#555;line-height:1.6">Estimated time for another engineer to reach operational competency on these pipelines after a handover brief and knowledge transfer sessions.</div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Pipelines at risk (${risk.pipelines.length})</div>
+        ${risk.pipelines.map(p=>`
+          <div style="background:white;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+              <div style="font-family:monospace;font-size:12px;color:var(--blue);font-weight:600">${p.name}</div>
+              <span style="font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;background:${p.impact.includes('Critical')?'#fce8e6':p.impact.includes('High')?'#fff7ed':p.impact.includes('Medium')?'#fefce8':'#e6f4ea'};color:${p.impact.includes('Critical')?'#c5221f':p.impact.includes('High')?'#c2410c':p.impact.includes('Medium')?'#854d0e':'#137333'};white-space:nowrap;flex-shrink:0;margin-left:8px">${p.impact}</span>
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px">${p.riskType}</div>
+            <div style="font-size:12px;color:#666;line-height:1.6">${p.reason}</div>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  else if(type === 'impact'){
+    title = 'Impact level definitions';
+    content = IMPACT_DEFS.map(d=>`
+      <div style="background:${d.bg};border-radius:10px;padding:14px 16px;margin-bottom:10px;border-left:4px solid ${d.color}">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+          <span style="font-size:13px;font-weight:700;color:${d.color}">${d.level}</span>
+          <span style="font-size:12px;font-weight:600;color:${d.color};background:white;padding:2px 8px;border-radius:20px">${d.days}</span>
+        </div>
+        <div style="font-size:13px;color:#555;line-height:1.65">${d.desc}</div>
+      </div>`).join('');
+  }
+
+  else if(type === 'risktype'){
+    title = 'Risk type definitions';
+    content = RISKTYPE_DEFS.map(d=>`
+      <div style="background:white;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;border-left:4px solid ${d.color}">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          <i class="ti ${d.icon}" style="font-size:17px;color:${d.color}"></i>
+          <span style="font-size:13px;font-weight:700;color:${d.color}">${d.type}</span>
+        </div>
+        <div style="font-size:13px;color:#555;line-height:1.65">${d.desc}</div>
+      </div>`).join('');
+  }
+
+  else if(type === 'compliance'){
+    title = 'Compliance score explained';
+    content = buildComplianceContent();
+  }
+    showModal(title, content);
+}
+
+function showModal(title, content){
+  const existing = document.getElementById('piq-modal');
+  if(existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'piq-modal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.onclick = (e)=>{ if(e.target===modal) modal.remove(); };
+  modal.innerHTML = `
+    <div style="background:white;border-radius:16px;padding:0;max-width:600px;width:100%;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.18)">
+      <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <div style="font-size:16px;font-weight:700;color:#1a1a2e">${title}</div>
+        <button onclick="document.getElementById('piq-modal').remove()" style="border:none;background:#f1f3f4;cursor:pointer;font-size:16px;color:#5f6368;padding:4px 8px;border-radius:6px;line-height:1">&times;</button>
+      </div>
+      <div style="padding:20px 24px;overflow-y:auto;flex:1">${content}</div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+
+function toggleCard(id){
+  const exp = document.getElementById('expand-'+id);
+  const chev = document.getElementById('chev-'+id);
+  const card = document.getElementById('card-'+id);
+  const isOpen = exp.style.display !== 'none';
+  exp.style.display = isOpen ? 'none' : 'block';
+  chev.style.transform = isOpen ? '' : 'rotate(180deg)';
+  card.style.boxShadow = isOpen ? '' : '0 4px 16px rgba(0,0,0,0.08)';
+}
+
+
+// -- WEBHOOK DEMO ----------------------------------------------------------
+let demoRunning = false;
+const demoCommits = [
+  {hash:'a9f2c44', eng:'Stefan W.', file:'booking_revenue_lh.py', msg:'Modified FX conversion logic', score:58, trend:'dropped', archetype:'veteran'},
+  {hash:'b3e1f92', eng:'Hana L.', file:'passenger_join.py', msg:'Added null validation before join', score:74, trend:'improved', archetype:'junior'},
+  {hash:'c7d8a01', eng:'Anitha R.', file:'entity_filter_rules.py', msg:'Updated LX ancillary exclusion', score:71, trend:'stable', archetype:'veteran'},
+  {hash:'d4f5b33', eng:'Marco L.', file:'channel_performance.py', msg:'Refactored chain with error handling', score:82, trend:'improved', archetype:'chain'},
+  {hash:'e1c9d77', eng:'Chen X.', file:'cargo_streaming.py', msg:'New DLT expectation for entity', score:65, trend:'stable', archetype:'experimenter'},
+];
+let demoIdx = 0;
+
+function addLog(msg, color){
+  const log = document.getElementById('demo-log');
+  if(!log) return;
+  const now = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = '<span style="color:#484f58">['+now+']</span> <span style="color:'+(color||'#7ee787')+'">'+msg+'</span>';
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+function setFlowStep(step, state){
+  for(let i=1;i<=4;i++){
+    const el = document.getElementById('flow-'+i);
+    if(!el) continue;
+    if(i < step) { el.classList.remove('active'); el.classList.add('done'); }
+    else if(i === step) { el.classList.add('active'); el.classList.remove('done'); }
+    else { el.classList.remove('active','done'); }
+  }
+  const line = document.getElementById('flow-line');
+  if(line) line.style.width = ((step-1)/3*100)+'%';
+}
+
+function setBadge(stepNum, text, color){
+  const badge = document.getElementById('badge-'+stepNum);
+  if(!badge) return;
+  badge.style.display = 'block';
+  badge.innerHTML = '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:'+color+'22;color:'+color+';font-weight:600">'+text+'</span>';
+}
+
+function setLiveDot(active){
+  const dot = document.getElementById('live-dot');
+  if(!dot) return;
+  dot.innerHTML = active
+    ? '<span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;animation:flowPulse 1s infinite"></span> Live'
+    : '<span style="width:7px;height:7px;border-radius:50%;background:#e4e7ef;display:inline-block"></span> Idle';
+  dot.style.color = active ? 'var(--green)' : 'var(--hint)';
+}
+
+function addLiveCommit(c){
+  const container = document.getElementById('live-commits');
+  if(!container) return;
+  const existing = container.querySelector('[data-placeholder]');
+  if(existing) existing.remove();
+  const row = document.createElement('div');
+  row.className = 'commit-row log-line';
+  row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f4f6fb;background:'+
+    (c.trend==='improved'?'#f0fdf4':c.trend==='dropped'?'#fff5f5':'white')+';border-radius:6px;padding:8px 10px;margin-bottom:6px;transition:background .5s';
+  const trendIcon = c.trend==='improved'?'<span style="color:var(--green)">&#9650;</span>':c.trend==='dropped'?'<span style="color:var(--red)">&#9660;</span>':'<span style="color:var(--amber)">--</span>';
+  row.innerHTML =
+    '<span class="commit-hash">'+c.hash+'</span>'+
+    '<span class="commit-msg" style="flex:1"><strong>'+c.eng+'</strong> -- '+c.msg+'</span>'+
+    '<span class="commit-date" style="font-size:11px;color:var(--hint)">just now</span>'+
+    '<span class="commit-score" style="color:'+(c.trend==='improved'?'var(--green)':c.trend==='dropped'?'var(--red)':'var(--amber)')+'">'+c.score+'% '+trendIcon+'</span>';
+  container.insertBefore(row, container.firstChild);
+  setTimeout(()=>{ row.style.background='white'; }, 2000);
+}
+
+async function runWebhookDemo(){
+  if(demoRunning) return;
+  demoRunning = true;
+  const btn = document.getElementById('demo-btn');
+  const status = document.getElementById('demo-status');
+  if(btn){ btn.disabled=true; btn.innerHTML='<i class="ti ti-loader" style="animation:spin .8s linear infinite;display:inline-block"></i>&nbsp;Running...'; }
+
+  // Reset
+  const log = document.getElementById('demo-log');
+  if(log) log.innerHTML = '';
+  for(let i=1;i<=4;i++){
+    const el=document.getElementById('flow-'+i);
+    if(el){el.classList.remove('active','done');}
+    const b=document.getElementById('badge-'+i);
+    if(b){b.style.display='none';}
+  }
+  const fl=document.getElementById('flow-line');
+  if(fl) fl.style.width='0%';
+
+  const c = demoCommits[demoIdx % demoCommits.length];
+  demoIdx++;
+
+  setLiveDot(true);
+  if(status) status.textContent = 'Simulating commit from '+c.eng+'...';
+
+  // Step 1 -- Commit
+  setFlowStep(1, 'active');
+  addLog('Bitbucket push event received', '#79c0ff');
+  addLog('Author: '+c.eng, '#e3b341');
+  addLog('File changed: '+c.file, '#e3b341');
+  addLog('Commit: '+c.hash+' -- '+c.msg, '#7ee787');
+  setBadge(1, c.hash.slice(0,7), '#378ADD');
+  await new Promise(r=>setTimeout(r,1200));
+
+  // Step 2 -- Webhook
+  setFlowStep(2, 'active');
+  addLog('Webhook payload parsed', '#79c0ff');
+  addLog('Extracting .py files from diff...', '#9aa0b0');
+  addLog('File queued for analysis: '+c.file, '#7ee787');
+  setBadge(2, 'received', '#1D9E75');
+  await new Promise(r=>setTimeout(r,1000));
+
+  // Step 3 -- Tokenise + Analyse
+  setFlowStep(3, 'active');
+  addLog('Tokenisation layer active', '#79c0ff');
+  addLog('Scanning for credentials, hostnames, table names...', '#9aa0b0');
+  const tokens = Math.floor(Math.random()*8)+3;
+  addLog(tokens+' sensitive values replaced with tokens', '#e3b341');
+  addLog('Sending tokenised notebook to Claude Sonnet...', '#9aa0b0');
+  await new Promise(r=>setTimeout(r,1400));
+  addLog('Claude analysis complete', '#7ee787');
+  addLog('Archetype detected: '+c.archetype, '#e3b341');
+  addLog('Compliance score: '+c.score+'%  ('+c.trend+')', c.trend==='improved'?'#7ee787':c.trend==='dropped'?'#f47067':'#e3b341');
+  setBadge(3, c.score+'%', c.trend==='improved'?'#1D9E75':c.trend==='dropped'?'#E24B4A':'#BA7517');
+  await new Promise(r=>setTimeout(r,1000));
+
+  // Step 4 -- Dashboard update
+  setFlowStep(4, 'active');
+  addLog('Dashboard updating...', '#79c0ff');
+  addLiveCommit(c);
+  await new Promise(r=>setTimeout(r,600));
+
+  if(c.trend === 'dropped'){
+    addLog('ALERT: Compliance dropped -- review before merge', '#f47067');
+    addLog('Alert queued: Finance-sign-off code may be affected', '#f47067');
+  } else if(c.trend === 'improved'){
+    addLog('Compliance improved -- standards gap narrowing', '#7ee787');
+  }
+  addLog('Commit history updated', '#7ee787');
+  addLog('Analysis complete in 3.6s', '#9aa0b0');
+  setBadge(4, 'updated', '#1D9E75');
+
+  // Complete all steps
+  for(let i=1;i<=4;i++){
+    const el=document.getElementById('flow-'+i);
+    if(el){el.classList.remove('active');el.classList.add('done');}
+  }
+  if(fl) fl.style.width='100%';
+  setLiveDot(false);
+  if(status) status.textContent = 'Complete -- run again for next commit';
+  if(btn){ btn.disabled=false; btn.innerHTML='<i class="ti ti-player-play"></i>&nbsp;Run again'; }
+  demoRunning = false;
+}
+
+function init(){
+  // Attach card toggle listeners safely after DOM ready
+  ['fingerprint','risk','brief'].forEach(id=>{
+    const el = document.getElementById('card-'+id);
+    if(el) el.addEventListener('click', ()=>toggleCard(id));
+  });
+  let idx=0;
+  ['veteran','chain','sql','junior','experimenter'].forEach(at=>{
+    for(let i=0;i<10;i++){
+      engineers.push({id:idx,name:FIRST[idx]+' '+LAST[idx],initials:FIRST[idx][0]+(LAST[idx][0]||'X'),archetype:at,score:COMP_SCORES[at][i],risk:RISK_LEVELS[at][i],years:at==='veteran'?4+Math.floor(Math.random()*3):at==='junior'?1+Math.floor(Math.random()*2):2+Math.floor(Math.random()*4)});
+      idx++;
+    }
+  });
+  updateApiStatus();
+
+  buildCharts();
+  initHierarchy();
+}
+
+function updateApiStatus(){
+  const dot=document.getElementById('api-dot');
+  const txt=document.getElementById('api-status-txt');
+  if(dot){ if(apiKey&&apiKey.startsWith('sk-ant-')){dot.classList.remove('off');}else{dot.classList.add('off');} }
+  if(txt){ txt.textContent=apiKey&&apiKey.startsWith('sk-ant-')?'API key active':'API key not set'; }
+}
+
+function saveApiKey(){
+  const v=document.getElementById('inline-api-key').value.trim().replace(/[^ -~]/g,'');
+  if(!v){alert('Please enter an API key');return;}
+  apiKey=v;
+  const el=document.getElementById('api-key-status');
+  if(el) el.textContent='API key set for this session only.';
+  updateApiStatus();
+}
+
+function saveMainApiKey(){
+  const v=document.getElementById('main-api-key').value.trim().replace(/[^ -~]/g,'');
+  if(!v){alert('Please enter an API key');return;}
+  apiKey=v;
+  const el=document.getElementById('main-key-status');
+  if(el) el.textContent='API key active for this session. Not saved.';
+  updateApiStatus();
+}
+
+function clearApiKey(){
+  apiKey='';
+  const inp=document.getElementById('main-api-key');
+  const el=document.getElementById('main-key-status');
+  if(inp) inp.value='';
+  if(el) el.textContent='API key cleared';
+  updateApiStatus();
+}
+
+function checkApiKey(){
+  const v=document.getElementById('inline-api-key').value.trim();
+  document.getElementById('api-key-status').textContent=v.startsWith('sk-ant-')?'Valid key format detected -- click Save':'Enter your Anthropic API key';
+}
+
+function tokenise(code){
+  const map={};
+  let tc=1,cc=1,hc=1,ec=1;
+  code=code.replace(/(password|pwd|secret|token|key)\s*=\s*["'][^"']+["']/gi,(m)=>{const k='CRED_TOKEN_'+String(cc++).padStart(3,'0');map[k]=m;return m.split('=')[0]+'="'+k+'"';});
+  code=code.replace(/["']https?:\/\/[^\s"']+["']/g,(m)=>{const k='URL_TOKEN_'+String(tc++).padStart(3,'0');map[k]=m;return '"'+k+'"';});
+  code=code.replace(/["'][a-z0-9_]+\.[a-z0-9_]+\.[a-z0-9_]+["']/gi,(m)=>{const k='TABLE_TOKEN_'+String(hc++).padStart(3,'0');map[k]=m;return '"'+k+'"';});
+  code=code.replace(/["'][a-z0-9-]+\.internal["']/gi,(m)=>{const k='HOST_TOKEN_'+String(ec++).padStart(3,'0');map[k]=m;return '"'+k+'"';});
+  return {tokenised:code,map,count:Object.keys(map).length};
+}
+
+async function analyseWithClaude(code,filename){
+  const key=apiKey||'';
+  if(!key||!key.startsWith('sk-ant-')){
+    return {error:'No valid API key. Please add your Anthropic API key in the API key settings page.'};
+  }
+  const {tokenised,map,count}=tokenise(code);
+  const prompt=`You are PipelineIQ, an AI code intelligence tool for Databricks data engineering teams at LHG (Lufthansa Group).
+
+Analyse this Databricks notebook (PySpark/SQL) and return a JSON object with exactly these fields:
+{
+  "archetype": one of: "veteran" | "chain_master" | "sql_native" | "junior" | "experimenter",
+  "compliance_score": integer 0-100,
+  "style_fingerprint": {
+    "dataframe_style": string,
+    "null_handling": string,
+    "uc_references": string,
+    "entity_filter": string,
+    "error_handling": string,
+    "date_logic": string
+  },
+  "rule_scores": {
+    "uc_references": integer 0-100,
+    "null_validation": integer 0-100,
+    "entity_filters": integer 0-100,
+    "error_handling": integer 0-100,
+    "schema_validation": integer 0-100,
+    "date_key": integer 0-100,
+    "fx_rate": integer 0-100
+  },
+  "risks": [{"level":"high"|"medium"|"low","title":string,"description":string}],
+  "handover_brief": string (3-4 sentences clear language for the engineer taking over),
+  "tokens_replaced": ${count}
+}
+
+Notebook filename: ${filename}
+Tokenised code (${count} sensitive values replaced with tokens):
+${tokenised.slice(0,3000)}
+
+Keep all string values under 120 characters. Respond ONLY with valid JSON, no markdown, no preamble.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key.replace(/[^\x20-\x7E]/g,''),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:prompt}]})
+    });
+    const d=await res.json();
+    if(d.error) return {error:d.error.message};
+    let txt=d.content[0].text.replace(/```json|```/g,'').trim();
+    // Repair truncated JSON by closing open structures
+    try {
+      JSON.parse(txt);
+    } catch(e) {
+      // Try to close unclosed JSON
+      const opens = (txt.match(/{/g)||[]).length - (txt.match(/}/g)||[]).length;
+      const arrOpens = (txt.match(/\[/g)||[]).length - (txt.match(/\]/g)||[]).length;
+      // Remove trailing incomplete key-value pair
+      txt = txt.replace(/,?\s*"[^"]*"\s*:\s*"[^"]*$/, '');
+      txt = txt.replace(/,?\s*"[^"]*"\s*:\s*$/, '');
+      for(let i=0;i<arrOpens;i++) txt += ']';
+      for(let i=0;i<opens;i++) txt += '}';
+    }
+    const parsed=JSON.parse(txt);
+    parsed.tokens_replaced=count;
+    parsed.token_map=map;
+    return parsed;
+  }catch(e){return {error:'Analysis failed: '+e.message};}
+}
+
+async function handleFile(file){
+  if(!file) return;
+  const loading=document.getElementById('analysis-loading');
+  const result=document.getElementById('analysis-result');
+  loading.style.display='block';
+  result.style.display='none';
+
+  // Animate steps sequentially
+  const steps = [
+    {id:'step-1', pct:15, txt:'Tokenising sensitive values...'},
+    {id:'step-2', pct:35, txt:'Analysing code patterns...'},
+    {id:'step-3', pct:55, txt:'Checking LHG compliance rules...'},
+    {id:'step-4', pct:75, txt:'Building style fingerprint...'},
+    {id:'step-5', pct:90, txt:'Generating handover brief...'},
+  ];
+  let stepIdx = 0;
+  const stepSubtitles=['Replacing credentials, hostnames and table names with tokens','Identifying DataFrame style, null handling and error patterns','Scoring against 7 LHG coding standards','Mapping entity logic, FX approach and date conventions','Writing the handover brief for the next engineer'];
+  function advanceStep(){
+    if(stepIdx > 0){
+      const prev = document.getElementById(steps[stepIdx-1].id);
+      if(prev){
+        prev.classList.remove('active');
+        prev.classList.add('done');
+        const prevIc = prev.querySelector('i');
+        if(prevIc) prevIc.className = 'ti ti-circle-check';
+      }
+    }
+    if(stepIdx < steps.length){
+      const curr = document.getElementById(steps[stepIdx].id);
+      if(curr){ curr.classList.remove('done'); curr.classList.add('active'); }
+      const fill = document.getElementById('progress-fill');
+      const txt = document.getElementById('progress-txt');
+      const sub = document.getElementById('loading-sub');
+      const lmsg = document.getElementById('loading-msg');
+      if(fill) fill.style.width = steps[stepIdx].pct+'%';
+      if(txt) txt.textContent = steps[stepIdx].pct+'%';
+      if(sub) sub.textContent = stepSubtitles[stepIdx]||'';
+      if(lmsg) lmsg.textContent = steps[stepIdx].txt.replace('...','');
+      // Show token pills during step 1
+      if(stepIdx===0){
+        const strip=document.getElementById('token-strip');
+        if(strip){
+          const tokens=['CRED_TOKEN_001','TABLE_TOKEN_002','HOST_TOKEN_003','URL_TOKEN_004','TABLE_TOKEN_005'];
+          tokens.forEach((t,i)=>setTimeout(()=>{
+            const pill=document.createElement('span');
+            pill.className='piq-token';
+            pill.textContent=t;
+            strip.appendChild(pill);
+          },i*200));
+        }
+      }
+      stepIdx++;
+    }
+  }
+  advanceStep();
+  const interval = setInterval(advanceStep, 1400);
+  let mi=0;
+  const text=await file.text().catch(()=>'');
+  let code=text;
+  if(file.name.endsWith('.ipynb')){
+    try{const nb=JSON.parse(text);code=nb.cells.filter(c=>c.cell_type==='code').map(c=>Array.isArray(c.source)?c.source.join(''):c.source).join('\n\n');}catch(e){}
+  }
+  const data=await analyseWithClaude(code,file.name);
+  clearInterval(interval);
+  // Complete all steps
+  ['step-1','step-2','step-3','step-4','step-5'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.classList.remove('active');
+    el.classList.add('done');
+    const ic=el.querySelector('i');
+    if(ic) ic.className='ti ti-circle-check';
+  });
+  const fill=document.getElementById('progress-fill');
+  const ptxt=document.getElementById('progress-txt');
+  if(fill) fill.style.width='100%';
+  if(ptxt) ptxt.textContent='Analysis complete';
+  await new Promise(r=>setTimeout(r,600));
+  loading.style.display='none';
+  // Reset steps for next use
+  ['step-1','step-2','step-3','step-4','step-5'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.classList.remove('active','done');
+    const ic=el.querySelector('i');
+    if(ic) ic.className=['ti ti-shield-lock','ti ti-code','ti ti-list-check','ti ti-fingerprint','ti ti-file-text'][i];
+  });
+  if(data.error){result.style.display='block';result.innerHTML=`<div style="color:var(--red);padding:1rem;font-size:13px"><i class="ti ti-alert-circle"></i> ${data.error}</div>`;return;}
+  const rules=['UC references','Null validation','Entity filters','Error handling','Schema validation','Date key','FX rate'];
+  const ruleVals=Object.values(data.rule_scores||{});
+  result.style.display='block';
+  result.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:16px;font-weight:700">${file.name}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Live analysis &middot; ${data.tokens_replaced||0} sensitive values tokenised &middot; Claude Sonnet</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="text-align:center"><div style="font-size:28px;font-weight:700;color:${(data.compliance_score||0)>=70?'var(--green)':(data.compliance_score||0)>=50?'var(--amber)':'var(--red)'}">${data.compliance_score||0}%</div><div style="font-size:11px;color:var(--muted)">Compliance</div></div>
+        <button class="btn-sm" onclick="window.print()"><i class="ti ti-printer"></i>&nbsp;Print brief</button>
+      </div>
+    </div>
+    <div style="margin-bottom:14px"><span style="font-size:12px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em">Archetype detected</span><br><span style="font-size:15px;font-weight:600;margin-top:4px;display:block">${(data.archetype||'').replace('_',' ').replace(/\b\w/g,c=>c.toUpperCase())}</span></div>
+    <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Style fingerprint</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      ${Object.entries(data.style_fingerprint||{}).map(([k,v])=>`<div class="sbox"><div class="slbl">${k.replace(/_/g,' ')}</div><div class="sval">${v}</div></div>`).join('')}
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Standard compliance</div>
+    ${rules.map((r,i)=>`<div class="comp-row"><div class="comp-rule">${r}</div><div class="comp-bw"><div class="comp-bf" style="width:${ruleVals[i]||0}%;background:${(ruleVals[i]||0)>=70?'#1D9E75':(ruleVals[i]||0)>=50?'#BA7517':'#E24B4A'}"></div></div><div class="comp-pct">${ruleVals[i]||0}%</div></div>`).join('')}
+    <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px">Risk register</div>
+    ${(data.risks||[]).map(r=>`<div class="risk-box ${r.level==='high'?'risk-high':'risk-med'}" style="margin-bottom:8px"><span class="hdr-badge ${r.level==='high'?'b-red':'b-amber'}" style="flex-shrink:0">${r.level}</span><div><div style="font-size:13px;font-weight:600">${r.title}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${r.description}</div></div></div>`).join('')}
+    <div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px">Handover brief</div>
+    <div class="brief-box">${data.handover_brief||''}</div>
+    ${data.tokens_replaced>0?`<div style="font-size:11px;color:var(--hint);margin-top:10px;padding:8px 12px;background:#f8f9fc;border-radius:8px"><i class="ti ti-shield-check" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>${data.tokens_replaced} sensitive values were tokenised before analysis. Token map available in browser memory.</div>`:''}
+  `;
+}
+
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f) handleFile(f);
+}
+
+function showPage(page,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg=document.getElementById('page-'+page); if(pg) pg.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  if(page==='engineers') renderGrid();
+  if(page==='team'){ if(!H) initHierarchy(); else renderCop(); }
+}
+
+function scoreClass(s){return s>=70?'s-hi':s>=50?'s-me':'s-lo';}
+
+function renderGrid(){
+  const f=engineers.filter(e=>(currentFilter==='all'||e.archetype===currentFilter)&&(currentRisk==='all'||e.risk===currentRisk));
+  document.getElementById('eng-grid').innerHTML=f.map(e=>`
+    <div class="eng-card${selectedId===e.id?' sel':''}" onclick="selectEng(${e.id})">
+      <div class="eng-av" style="background:${AT_COLORS[e.archetype]}20;color:${AT_COLORS[e.archetype]}">${e.initials}</div>
+      <div class="eng-name">${e.name}</div>
+      <div class="eng-type">${AT_LABELS[e.archetype]}</div>
+      <div class="eng-foot">
+        <span class="spill ${scoreClass(e.score)}">${e.score}%</span>
+        <span class="hdr-badge ${e.e.risk==='departure'||e.risk==='high'?'b-red':e.risk==='medium'?'b-amber':'b-green'}" style="font-size:10px">${e.risk}</span>
+      </div>
+    </div>`).join('');
+}
+
+function selectEng(id){
+  selectedId=id;
+  renderGrid();
+  const e=engineers[id];
+  const st=STYLE_DATA[e.archetype];
+  const rs=RULE_SCORES[e.archetype];
+  const rules=['UC references','Null validation','Entity filters','Error handling','Schema validation','Date key','FX rate source'];
+  const commits=[
+    {hash:'a4f2c91',msg:'Updated entity filter logic',date:'2h ago',delta:'+2%'},
+    {hash:'8b3d112',msg:'Added null check before join',date:'Yesterday',delta:'+3%'},
+    {hash:'c91e443',msg:'Refactored FX conversion',date:'3 days ago',delta:'-1%'},
+    {hash:'7f3a290',msg:'Added schema validation',date:'5 days ago',delta:'+5%'},
+    {hash:'2d8b551',msg:'Fixed hardcoded date constant',date:'1 week ago',delta:'+2%'},
+  ];
+  document.getElementById('eng-panel').innerHTML=`
+    <div class="panel">
+      <div class="panel-hdr">
+        <div style="display:flex;align-items:center;gap:13px">
+          <div style="width:44px;height:44px;border-radius:50%;background:${AT_COLORS[e.archetype]}20;color:${AT_COLORS[e.archetype]};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">${e.initials}</div>
+          <div><div class="panel-name">${e.name}</div><div class="panel-meta">${AT_LABELS[e.archetype]} &middot; ${e.years} years &middot; <span title="Compliance score against 7 LHG coding standards">Compliance score: ${e.score}%</span> &middot; Pipeline risk: ${e.risk}</div></div>
+        </div>
+        <div class="act-row">
+          <button class="btn-sm" onclick="window.print()"><i class="ti ti-printer"></i>&nbsp;Print brief</button>
+          <button class="btn-sm btn-primary" onclick="downloadBrief(${id})"><i class="ti ti-download"></i>&nbsp;Download</button>
+        </div>
+      </div>
+      <div class="sec-h">Style fingerprint</div>
+      <div class="style-grid">
+        <div class="sbox"><div class="slbl">DataFrame style</div><div class="sval">${st.df}</div></div>
+        <div class="sbox"><div class="slbl">Null handling</div><div class="sval">${st.null_h}</div></div>
+        <div class="sbox"><div class="slbl">UC table references</div><div class="sval">${st.uc}</div></div>
+        <div class="sbox"><div class="slbl">Entity filter approach</div><div class="sval">${st.entity}</div></div>
+        <div class="sbox"><div class="slbl">Error handling</div><div class="sval">${st.error}</div></div>
+        <div class="sbox"><div class="slbl">FX rate approach</div><div class="sval">${st.fx}</div></div>
+      </div>
+      <div class="sec-h">Typical code pattern</div>
+      <div class="code-block">${CODE_SAMPLES[e.archetype]}</div>
+      <div class="sec-h">Standard compliance by rule</div>
+      ${rules.map((r,i)=>`<div class="comp-row"><div class="comp-rule">${r}</div><div class="comp-bw"><div class="comp-bf" style="width:${rs[i]}%;background:${rs[i]>=70?'#1D9E75':rs[i]>=50?'#BA7517':'#E24B4A'}"></div></div><div class="comp-pct">${rs[i]}%</div></div>`).join('')}
+      <div class="sec-h">Recent commit history (last 10)</div>
+      ${commits.map(c=>`<div class="commit-row"><span class="commit-hash">${c.hash}</span><span class="commit-msg">${c.msg}</span><span class="commit-date">${c.date}</span><span class="commit-score" style="color:${c.delta.startsWith('+')?'var(--green)':'var(--red)'}">${c.delta}</span></div>`).join('')}
+      <div class="sec-h" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="showMetricDetail('risk',e.archetype,e.name)">Risk register <span style="font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);background:white;color:var(--blue);font-weight:600">View details &rarr;</span></div>
+      <div class="risk-list">
+        ${e.risk==='high'?`<div class="risk-box risk-high"><span class="hdr-badge b-red" style="flex-shrink:0">Critical</span><div><div style="font-size:13px;font-weight:600">${e.years} years of LHG institutional knowledge at departure risk</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Departure without handover = 4-6 weeks for replacement to reach equivalent understanding.</div></div></div>`:''}
+        ${e.archetype==='experimenter'?`<div class="risk-box risk-high"><span class="hdr-badge b-red" style="flex-shrink:0">Critical</span><div><div style="font-size:13px;font-weight:600">Delta Live Tables -- team knowledge gap</div><div style="font-size:12px;color:var(--muted);margin-top:2px">No other team member uses DLT. If this engineer leaves, no internal capability exists to maintain these pipelines.</div></div></div>`:''}
+        <div class="risk-box risk-med"><span class="hdr-badge b-amber" style="flex-shrink:0">Risk</span><div><div style="font-size:13px;font-weight:600">Null handling compliance at ${rs[1]}%</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Joins without upstream null validation may fail silently on schema changes.</div></div></div>
+      </div>
+      <div class="sec-h">Handover brief</div>
+      <div class="brief-box">${e.name.split(' ')[0]} is ${BRIEF_TEXT[e.archetype]}<br><br>Key LHG knowledge: ${st.entity.toLowerCase()}. Date logic: ${st.date.toLowerCase()}. FX: ${st.fx.toLowerCase()}.<br><br><strong>Estimated onboarding time with this brief: 2-3 days. Without: 4-6 weeks.</strong></div>
+    </div>`;
+  document.getElementById('eng-panel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function downloadBrief(id){
+  const e=engineers[id];
+  const st=STYLE_DATA[e.archetype];
+  const rs=RULE_SCORES[e.archetype];
+  const rules=['UC references','Null validation','Entity filters','Error handling','Schema validation','Date key','FX rate'];
+  const date=new Date().toLocaleDateString('en-GB');
+  const content=`PIPELINEIQ HANDOVER BRIEF\nGenerated: ${date}\n\nEngineer: ${e.name}\nArchetype: ${AT_LABELS[e.archetype]}\nYears on team: ${e.years}\nCompliance score: ${e.score}%\nRisk level: ${e.risk}\n\nSTYLE FINGERPRINT\n-----------------\nDataFrame style: ${st.df}\nNull handling: ${st.null_h}\nUC table references: ${st.uc}\nEntity filter approach: ${st.entity}\nError handling: ${st.error}\nDate logic: ${st.date}\nFX rate approach: ${st.fx}\n\nSTANDARD COMPLIANCE\n-------------------\n${rules.map((r,i)=>r+': '+rs[i]+'%').join('\n')}\n\nHANDOVER BRIEF\n--------------\n${e.name.split(' ')[0]} is ${BRIEF_TEXT[e.archetype]}\n\nKey LHG knowledge:\n- Entity filter: ${st.entity}\n- Date logic: ${st.date}\n- FX approach: ${st.fx}\n\nEstimated onboarding time with this brief: 2-3 days\nWithout this brief: 4-6 weeks\n\nRISK REGISTER\n-------------\n${e.risk==='high'?'CRITICAL: '+e.years+' years of LHG context at departure risk.':''}\n${e.archetype==='experimenter'?'CRITICAL: Delta Live Tables -- no team backup.':''}\nMEDIUM: Null handling at '+rs[1]+'% -- review before production.\n\n---\nGenerated by PipelineIQ V2 -- by Ganeshbalan Pandy\nAI-powered code intelligence for Databricks teams`;
+  const blob=new Blob([content],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='PipelineIQ_Brief_'+e.name.replace(' ','_')+'_'+date.replace(/\//g,'-')+'.txt';
+  a.click();
+}
+
+function filterEng(cat,btn){
+  currentFilter=cat;
+  document.querySelectorAll('.filter-row:first-of-type .fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrid();
+}
+
+function filterRisk(risk,btn){
+  currentRisk=risk;
+  document.querySelectorAll('.filter-row:nth-of-type(2) .fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrid();
+}
+
+function buildCharts(){
+  const teamCtx=document.getElementById('teamChart');
+  if(teamCtx) new Chart(teamCtx,{type:'bar',data:{labels:['0-40%','41-60%','61-80%','81-100%'],datasets:[{label:'Engineers',data:[9,18,17,6],backgroundColor:['#E24B4A','#BA7517','#378ADD','#1D9E75'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:5},grid:{color:'rgba(0,0,0,0.04)'}},x:{grid:{display:false}}}}});
+
+  const trendCtx=document.getElementById('trendChart');
+  if(trendCtx) new Chart(trendCtx,{type:'line',data:{labels:['W1','W2','W3','W4','W5','W6','W7','W8'],datasets:[{label:'Team compliance',data:[68,67,69,65,64,65,63,62],borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.08)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#378ADD'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,min:55,max:75,grid:{color:'rgba(0,0,0,0.04)'}},x:{grid:{display:false}}}}});
+
+  const arcCtx=document.getElementById('archetypeChart');
+  if(arcCtx) new Chart(arcCtx,{type:'bar',data:{labels:['Veteran','Chain','SQL','Junior','Experimenter'],datasets:[{data:[68,80,56,48,63],backgroundColor:['#378ADD','#1D9E75','#BA7517','#888780','#7F77DD'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(0,0,0,0.04)'}},x:{grid:{display:false}}}}});
+
+  const ruleCtx=document.getElementById('ruleChart');
+  if(ruleCtx) new Chart(ruleCtx,{type:'bar',data:{labels:['UC','Null','Entity','Error','Schema','Date','FX'],datasets:[{data:[78,41,69,34,52,81,58],backgroundColor:['#1D9E75','#E24B4A','#BA7517','#E24B4A','#BA7517','#1D9E75','#BA7517'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(0,0,0,0.04)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+}
+
+init();
+</script>
+</body>
+</html>
